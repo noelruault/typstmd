@@ -1,0 +1,7 @@
+{
+    // https://myriad-dreamin.github.io/tinymist//frontend/vscode.html
+    "[typst]": {
+        "editor.formatOnSave": true
+    },
+    "tinymist.formatterMode": "typstyle",
+}
