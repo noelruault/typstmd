@@ -17,7 +17,6 @@
 // display as a blank white section break
 // I bet you can figure out how to make it a different colour!
 
-
 // Resources:
 // - https://neilzone.co.uk/2025/01/using-pandoc-and-typst-to-convert-markdown-into-custom-formatted-pdfs-with-a-sample-template/
 // - https://imaginarytext.ca/posts/2024/pandoc-typst-tutorial/

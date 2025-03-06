@@ -1,2 +1,1 @@
-chmod +x converter.sh
-./converter.sh example.md
+./cmd/converter.sh example.md
