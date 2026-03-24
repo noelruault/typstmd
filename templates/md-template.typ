@@ -105,7 +105,7 @@
 
 // Images and figures:
 //
-  set image(width: 5.25in, fit: "contain")
+  set image(width: 100%, fit: "contain")
   show image: it => {
     align(center, it)
   }
@@ -148,6 +148,12 @@
         #set text(font: font, weight: "regular", style: "italic", size: 11pt)
         #block(it.body)
       ])
+
+// Tables
+//
+  set table(inset: 8pt, stroke: 0.5pt + gray)
+  show table.cell.where(y: 0): set text(weight: "semibold")
+  show figure.where(kind: table): set figure.caption(position: top)
 
 // URLs
 //
