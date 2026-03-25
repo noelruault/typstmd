@@ -1,4 +1,4 @@
-# Agents
+# AGENTS.md
 
 This file provides context for AI agents working on this project.
 
