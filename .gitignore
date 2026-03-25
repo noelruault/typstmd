@@ -1,2 +1,78 @@
+# =============================================================================
+# Project-Specific Ignores
+# =============================================================================
+
 output/
 tmp/
+web/.dev-dist/
+
+# =============================================================================
+# Thumbnails and temporary files
+# =============================================================================
+
+._*
+_*
+__*
+
+# =============================================================================
+# Build and Distribution Directories
+# =============================================================================
+
+bin/
+main
+**/node_modules/
+
+# =============================================================================
+# Editors and IDEs
+# =============================================================================
+
+__debug_bin
+.zed/
+.vscode/
+.idea/
+
+# =============================================================================
+# Golang-Specific Ignores
+# =============================================================================
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+*.prof
+profiles/
+.gocache/
+.gomodcache/
+go.work
+go.work.sum
+
+# Dependency directories (uncomment to include)
+vendor/
+
+# =============================================================================
+# Operating System-Specific Ignores
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Files that might appear in the root of a volume (macOS)
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns

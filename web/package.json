@@ -1,0 +1,24 @@
+{
+  "name": "typstmd-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/dev-server.ts",
+    "build": "bun build src/main.ts --outdir dist --minify",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@myriaddreamin/typst-ts-web-compiler": "0.6.0",
+    "@myriaddreamin/typst.ts": "0.6.0",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "4.0.0",
+    "remark-parse": "11.0.0",
+    "unified": "11.0.5",
+    "yaml": "2.7.1"
+  },
+  "devDependencies": {
+    "@types/bun": "1.2.9",
+    "typescript": "5.7.3"
+  }
+}

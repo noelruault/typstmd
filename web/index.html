@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>typstmd — Markdown to PDF</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #toolbar {
+      padding: 8px 16px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #toolbar h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .toolbar-btn {
+      padding: 6px 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .toolbar-btn:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+    .toolbar-secondary {
+      padding: 4px 10px;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #444;
+    }
+    .toolbar-secondary:hover { background: #eee; }
+    #view-toggle.active {
+      background: #e0e7ff;
+      border-color: #93b4fd;
+      color: #2563eb;
+    }
+    #theme-select {
+      padding: 4px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #444;
+      background: white;
+    }
+    .toolbar-spacer { flex: 1; }
+    #download-link {
+      font-size: 14px;
+      color: #2563eb;
+      display: none;
+    }
+    #editor.source-view {
+      background: #fafaf5;
+      color: #555;
+    }
+    #main {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    #editor {
+      flex: 1;
+      border: none;
+      border-right: 1px solid #ddd;
+      padding: 16px;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 13px;
+      resize: none;
+      outline: none;
+    }
+    #preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #preview {
+      flex: 1;
+      border: none;
+      background: #f9f9f9;
+    }
+    #status {
+      padding: 4px 16px;
+      font-size: 12px;
+      color: #666;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <h1>typstmd</h1>
+    <button id="convert-btn" class="toolbar-btn" disabled>Convert</button>
+    <select id="theme-select" title="PDF theme">
+      <option value="default">Default</option>
+      <option value="minimal">Minimal</option>
+      <option value="academic">Academic</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <button id="view-toggle" class="toolbar-secondary" title="Toggle Typst source view">Source</button>
+    <a id="download-link" href="#" download="output.pdf">Download PDF</a>
+  </div>
+  <div id="main">
+    <textarea id="editor" spellcheck="false">Loading...</textarea>
+    <div id="preview-container">
+      <iframe id="preview"></iframe>
+    </div>
+  </div>
+  <div id="status">Initializing WASM compiler...</div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
