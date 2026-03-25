@@ -47,8 +47,9 @@ const statusEl = document.getElementById("status") as HTMLDivElement;
 // Store markdown separately so we can restore it when leaving source view
 let currentMarkdown = DEFAULT_MARKDOWN.trim();
 
-function setStatus(msg: string) {
+function setStatus(msg: string, kind: "info" | "error" | "loading" = "info") {
   statusEl.textContent = msg;
+  statusEl.className = kind === "info" ? "" : kind;
 }
 
 async function doCompile() {
@@ -60,7 +61,7 @@ async function doCompile() {
   }
 
   convertBtn.disabled = true;
-  setStatus("Compiling...");
+  setStatus("Compiling...", "loading");
 
   try {
     // Markdown → Typst source
@@ -110,7 +111,7 @@ async function doCompile() {
       : err instanceof Error
         ? err.message
         : JSON.stringify(err);
-    setStatus(`Compile error: ${msg}`);
+    setStatus(`Compile error: ${msg}`, "error");
   } finally {
     if (jobId === latestJobId) {
       convertBtn.disabled = false;
@@ -152,6 +153,51 @@ editor.addEventListener("input", scheduleCompile);
 viewToggle.addEventListener("click", toggleSourceView);
 themeSelect.addEventListener("change", doCompile);
 
+// Drag-and-drop .md files
+const dropOverlay = document.getElementById("drop-overlay") as HTMLDivElement;
+let dragCounter = 0;
+
+document.addEventListener("dragenter", (e) => {
+  e.preventDefault();
+  dragCounter++;
+  if (dragCounter === 1) dropOverlay.classList.add("visible");
+});
+
+document.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  dragCounter--;
+  if (dragCounter === 0) dropOverlay.classList.remove("visible");
+});
+
+document.addEventListener("dragover", (e) => {
+  e.preventDefault();
+});
+
+document.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dragCounter = 0;
+  dropOverlay.classList.remove("visible");
+
+  const file = e.dataTransfer?.files?.[0];
+  if (!file) return;
+
+  if (!file.name.endsWith(".md") && !file.name.endsWith(".markdown") && file.type !== "text/markdown") {
+    setStatus("Drop a .md file to load it");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result as string;
+    if (sourceViewActive) toggleSourceView(); // switch back to editor
+    currentMarkdown = text;
+    editor.value = text;
+    setStatus(`Loaded ${file.name}`);
+    doCompile();
+  };
+  reader.readAsText(file);
+});
+
 // Cleanup on page unload
 window.addEventListener("beforeunload", () => {
   if (currentPdfUrl) {
@@ -170,7 +216,7 @@ async function init() {
     doCompile();
   } catch (err) {
     const msg = err instanceof Error ? err.message : JSON.stringify(err);
-    setStatus(`Failed to initialize compiler: ${msg}`);
+    setStatus(`Failed to initialize compiler: ${msg}`, "error");
   }
 }
 

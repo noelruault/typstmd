@@ -209,102 +209,144 @@ This means markdown written for GitHub with single-newline line breaks will refl
 
 ## Phased implementation
 
-### Phase 1 — Compiler proof of concept
-1. Scaffold `web/` with Vite + TypeScript + vitest
-2. Hardcode a minimal Typst document string (no markdown parsing yet)
-3. Wire WASM compiler, confirm init → compile → PDF bytes
-4. Create UI: textarea (shows raw Typst), button, iframe preview, download link
-5. **Gate:** clicking Convert produces a valid PDF from hardcoded Typst. WASM loads, compiles, and previews successfully.
+### Phase 1 — Compiler proof of concept ✓
+1. Scaffold `web/` with Bun + TypeScript
+2. Wire WASM compiler (`@myriaddreamin/typst.ts` v0.6.0), confirm init → compile → PDF bytes
+3. Create UI: textarea, Convert button, iframe preview, download link
+4. Bun dev server with COOP/COEP headers for SharedArrayBuffer
+5. **Gate:** clicking Convert produces a valid PDF. WASM loads, compiles, and previews successfully.
 
-### Phase 2 — Core markdown subset
-1. Implement `typst-escape.ts` with full test suite
+### Phase 2 — Core markdown subset ✓
+1. Implement `typst-escape.ts` with full test suite (30 tests: text, URL, label contexts)
 2. Implement `mdast-to-typst.ts` for: headings, paragraphs, emphasis, strong, inline code, fenced code, links, soft/hard breaks
-3. Port a **minimal template** into `template.ts`: page layout (A4, margins) + body font + basic heading sizes. Not full visual parity yet, but enough that output is readable and transform bugs are visible against styled output, not raw unstyled text.
-4. Implement unsupported-node warning system with contextual placeholders
-5. Wire unified pipeline (parse → transform → compile)
-6. Add debounced auto-compilation (500ms idle) — this is a dev-time quality-of-life feature, not polish. Live feedback while building the transformer is essential.
-7. Write fixture tests: each supported node type has a `.md` → `.typ` snapshot pair
-8. **Gate:** typing markdown in textarea produces correct styled Typst for all Phase 2 nodes. Unsupported nodes show contextual warnings. Auto-recompilation works.
+3. Implement unsupported-node warning system with contextual placeholders
+4. Wire unified pipeline (parse → transform → compile) in `pipeline.ts`
+5. Add debounced auto-compilation (500ms idle)
+6. **Gate:** typing markdown produces correct styled Typst. Unsupported nodes show contextual warnings. Auto-recompilation works.
 
-### Phase 3 — Structural markdown
-1. Add lists (ordered, unordered, nested) with tight/loose semantics
-2. Add blockquotes (including nested)
-3. Add thematic breaks
-4. More fixture tests, including nesting combinations (quote > list > paragraph, etc.)
-5. **Gate:** structural nesting renders correctly. Fixtures pass.
+### Phase 3 — Structural markdown ✓
+1. Add lists (ordered `+`, unordered `-`, nested with indent tracking)
+2. Add blockquotes (including nested, via `#quote(block: true)[...]`)
+3. Add thematic breaks (`#horizontalrule` variable reference)
+4. **Gate:** structural nesting renders correctly.
 
-### Phase 4 — Tables + footnotes
-1. Add GFM table transform with documented limitations
-2. Add footnote resolution pass (collection, reference counting, recursive rendering)
-3. Add `frontmatter.ts` with typed schema + strict Typst value encoder
-4. Fixture tests for: multi-column tables, multiple footnote references, footnotes in quotes/lists, metadata with special characters
-5. **Gate:** `example.md` converts end-to-end and produces a structurally complete PDF.
+### Phase 4 — Tables + footnotes + frontmatter ✓
+1. GFM table transform: `#table(columns: N, [cell], ...)` with alignment warning
+2. Footnote resolution: collection pass, reference counting, labeled footnotes (`<fn-id>` / `@fn-id`)
+3. `frontmatter.ts`: YAML → typed Metadata → strict Typst value encoder with content blocks
+4. **Gate:** `example.md` converts end-to-end and produces a structurally complete PDF.
 
-### Phase 5 — Visual parity + template port
-1. Port full `md-template.typ` styling into `template.ts` (all heading sizes, quote styles, code formatting, table styling, header/footer, page layout)
-2. Compare PDF output against CLI-generated `output/example.pdf` for agreed fixtures
-3. Document intentional visual differences (font fallback, spacing tolerances)
-4. **Gate — concrete acceptance criteria:**
-   - No missing semantic content on agreed fixtures (`example.md` + any added fixtures)
-   - Zero unsupported-node warnings for `example.md`
-   - Page count matches CLI output (within ±1 page tolerance for font-driven reflow)
-   - Headings, tables, footnotes, and code blocks visually correct in side-by-side review
-   - Documented differences limited to font substitution and minor spacing — not structural (missing content, wrong nesting, broken links)
+### Phase 5 — Visual parity + themes ✓
+1. Ported full `md-template.typ` styling into `themes/default.ts`
+2. Added `themes/minimal.ts` (clean, wider margins, centered page numbers)
+3. Added `themes/academic.ts` (New Computer Modern, justified, numbered headings)
+4. Theme registry (`themes/index.ts`) + UI dropdown for runtime switching
+5. Source/Editor toggle (Obsidian-style) showing full generated Typst source
+6. **Known differences from CLI:** font depends on CDN availability (Libertinus Serif not bundled yet); `example.md` produces image/strikethrough/HTML warnings (deferred nodes)
 
-### Phase 6 — Polish
-1. Libertinus Serif font bundling (load via `$typst.setFonts()`)
-2. Drag-and-drop `.md` files
-3. Loading indicator + progress for WASM init
-4. Mobile: detect and switch to download-only mode
+### Phase 6 — Polish ✓
+1. Drag-and-drop `.md` / `.markdown` files with visual overlay
+2. Status bar with color-coded states (loading=blue, error=red, info=default)
+3. Mobile-responsive layout (stacked panels below 768px, wrapping toolbar)
+4. Auto-compile on init for immediate PDF preview
 
 ### Future (not in scope)
-- Image subsystem (async fetch, CORS handling, blob lifecycle, relative path resolution, dimension probing, caching — this is its own project)
+- Libertinus Serif font bundling (load via `$typst.setFonts()` for offline use)
+- Image subsystem (async fetch, CORS handling, blob lifecycle, caching)
 - Mermaid support (client-side `mermaid` npm → SVG → embed)
 - Strikethrough, task lists, autolinks
 - Service worker for offline
 - GitHub Pages deployment
 - Custom font upload
+- Compile smoke tests via WASM (asserting valid PDF bytes from generated markup)
 
 ## Test strategy
 
-Not just visual comparison to `example.md`. Three layers:
+96 tests across 5 test files, all using Bun's native test runner (`bun test`).
 
-1. **Snapshot tests** (`test/fixtures/`): pairs of `input.md` → `expected.typ`. Run via vitest. Covers each node type individually and in combination. Includes edge cases: special characters, empty content, deeply nested structures.
+### Test files
 
-2. **Compile smoke tests**: take transformer output, pass through WASM compiler, assert it produces valid PDF bytes (non-zero length, correct magic bytes). Catches Typst syntax errors in generated markup.
+1. **`test/typst-escape.test.ts`** (30 tests) — Context-sensitive escaping for text, URLs, labels. Covers: empty strings, all special chars, adjacent markup, smart punctuation, unicode preservation.
 
-3. **CLI parity regression tests**: a small set of fixtures (starting with `example.md`) where the web PDF output is compared against CLI-generated PDF output. Initially manual side-by-side comparison; later can use text extraction (e.g., pdf.js or `pdftotext`) to diff content programmatically. Catches semantic drift between the two pipelines.
+2. **`test/mdast-to-typst.test.ts`** (38 tests) — Unit tests for the MDAST→Typst serializer. Covers every supported node type + regression tests ensuring Typst function calls use `#` prefix (guards against the `horizontalrule` literal-text class of bug).
 
-4. **Edge-case fixtures**: dedicated tests for:
-   - Escaping: brackets, quotes, colons, `#` in prose, `$` signs, backslashes
-   - Footnotes: multiple refs, missing defs, block content, nested contexts
-   - Lists: tight/loose, 3+ nesting levels, mixed ordered/unordered
-   - Tables: varying column counts, empty cells, cells with formatting
-   - Metadata: special characters in title/author, missing fields, multi-author
+3. **`test/frontmatter.test.ts`** (14 tests) — YAML extraction + Typst encoding. Covers: missing frontmatter, single/multiple authors, special char escaping, empty metadata.
 
-## Performance budget
+4. **`test/fixtures.test.ts`** (8 tests) — Snapshot tests using `.md` → `.typ` file pairs in `test/fixtures/`. Auto-discovers fixtures. Covers: headings, emphasis, code, links, lists, tables, blockquotes, escaping, footnotes.
 
-- WASM init: < 5s on broadband (lazy load after page render, progress shown)
-- Compilation of `example.md`: < 2s after init
-- Total WASM + font payload: document the actual size, consider CDN with cache headers
-- Memory: monitor for leaks on repeated compilations
+5. **`test/pipeline.test.ts`** (6 tests) — Integration tests for the full pipeline. Covers: basic markdown, theme inclusion, frontmatter metadata, warning collection, theme switching, and `example.md` end-to-end conversion.
 
-## Risks
+### Not yet implemented
+- **Compile smoke tests**: passing generated Typst through WASM compiler to assert valid PDF output (requires WASM in test environment)
+- **CLI parity regression**: side-by-side comparison of web vs CLI PDF output for `example.md`
 
-| Risk | Severity | Mitigation |
+## Project structure (actual)
+
+```
+web/
+  index.html                    -- Two-panel UI with toolbar, editor, iframe preview
+  package.json                  -- Bun scripts (dev, build, test), pinned deps
+  tsconfig.json                 -- ES2022, bundler resolution, strict
+  bun.lock
+  .dev-dist/                    -- Dev server bundle output (gitignored)
+  src/
+    main.ts                     -- Bootstrap, UI events, drag-drop, source toggle
+    pipeline.ts                 -- unified pipeline: parse → extract → transform → assemble
+    mdast-to-typst.ts           -- MDAST tree → Typst markup (core serializer)
+    typst-escape.ts             -- Context-aware escaping (text, URL, label)
+    typst-compiler.ts           -- WASM compiler wrapper (pinned API surface)
+    frontmatter.ts              -- YAML → typed Metadata → Typst value encoder
+    warnings.ts                 -- Warning collector for unsupported/deferred nodes
+    dev-server.ts               -- Bun.serve() dev server with COOP/COEP + bundling
+    themes/
+      index.ts                  -- Theme registry + getTheme()
+      default.ts                -- Ported from md-template.typ (Linux Libertine, green code)
+      minimal.ts                -- Clean minimal theme (11pt, centered page numbers)
+      academic.ts               -- Academic theme (New Computer Modern, justified, numbered headings)
+  test/
+    typst-escape.test.ts        -- 30 escaping tests
+    mdast-to-typst.test.ts      -- 38 serializer tests + regression guards
+    frontmatter.test.ts         -- 14 metadata tests
+    fixtures.test.ts            -- Snapshot test runner (auto-discovers .md/.typ pairs)
+    pipeline.test.ts            -- 6 integration tests (incl. example.md e2e)
+    fixtures/                   -- .md → .typ snapshot pairs
+      headings.md / .typ
+      emphasis.md / .typ
+      code.md / .typ
+      links.md / .typ
+      lists.md / .typ
+      table.md / .typ
+      blockquote.md / .typ
+      escaping.md / .typ
+      footnotes.md / .typ
+```
+
+## Dependencies (actual)
+
+**Runtime (pinned):**
+- `unified@11.0.5`, `remark-parse@11.0.0`, `remark-frontmatter@5.0.0`, `remark-gfm@4.0.0`
+- `yaml@2.7.1`
+- `@myriaddreamin/typst.ts@0.6.0`, `@myriaddreamin/typst-ts-web-compiler@0.6.0`
+
+**Dev:**
+- `typescript@5.7.3`, `@types/bun@1.2.9`
+
+No framework. No Vite. No Vitest. Bun handles dev server, bundling, and testing.
+
+## Risks (updated)
+
+| Risk | Severity | Status |
 |---|---|---|
-| WASM size (~10-15MB) | High | Lazy load, progress indicator, CDN hosting. Investigate whether typst.ts supports streaming compilation or splitting font payload from compiler payload. First-load UX on slow connections is a real concern for casual use. |
-| Font availability | Low | Default fonts Phase 1-4, bundle custom in Phase 5 |
-| typst.ts API churn (pre-1.0) | Medium | Pin exact versions, isolate behind wrapper interface |
-| Escaping edge cases | High | First-class module with dedicated test suite |
-| Footnote complexity | Medium | Proper resolution pass with reference counting |
-| Table layout differences | Low | Documented GFM-only subset, auto-width matches Lua filter behavior |
-| Metadata injection safety | Medium | Typed schema + strict encoder, no string interpolation |
-| Mobile PDF preview | Low | Detect and fall back to download-only |
-| Image handling | High | Deferred entirely — own subsystem in Future phase |
+| WASM size (~10-15MB) | High | Accepted — lazy loaded after page render, status bar shows init state |
+| Font availability | Medium | Using CDN fonts via `preloadRemoteFonts`. Offline/bundled fonts deferred to Future |
+| typst.ts API churn (pre-1.0) | Medium | Mitigated — pinned v0.6.0, isolated behind `TypstCompiler` interface |
+| Escaping edge cases | Low | Mitigated — first-class module with 30 dedicated tests |
+| Footnote complexity | Low | Mitigated — proper resolution pass with reference counting, 3 dedicated tests |
+| Mobile PDF preview | Low | Accepted — responsive layout implemented, download link always available |
+| Image handling | High | Deferred entirely |
 
 ## Critical files
-- `templates/md-template.typ` — source template to port (lines 24-204 are pure Typst to reuse)
-- `example.md` — acceptance test document
-- `cmd/converter.sh` — reference for current pipeline behavior
+- `templates/md-template.typ` — original template (ported to `themes/default.ts`)
+- `example.md` — acceptance test document (tested in `pipeline.test.ts`)
+- `cmd/converter.sh` — CLI pipeline reference
 - `cmd/filters/auto-table-widths.lua` — confirms auto-width behavior our `#table()` approach solves

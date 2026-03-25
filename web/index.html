@@ -102,6 +102,61 @@
       background: #fafafa;
       border-top: 1px solid #eee;
     }
+    #status.error {
+      color: #dc2626;
+      background: #fef2f2;
+    }
+    #status.loading {
+      color: #2563eb;
+    }
+
+    /* Drop overlay */
+    #drop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(37, 99, 235, 0.08);
+      border: 3px dashed #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #2563eb;
+      font-weight: 600;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    #drop-overlay.visible {
+      opacity: 1;
+    }
+
+    /* Mobile layout */
+    @media (max-width: 768px) {
+      #main {
+        flex-direction: column;
+      }
+      #editor {
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        min-height: 40vh;
+        flex: none;
+      }
+      #preview-container {
+        min-height: 40vh;
+      }
+      #toolbar {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      #toolbar h1 {
+        font-size: 14px;
+      }
+      .toolbar-spacer {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -123,7 +178,8 @@
       <iframe id="preview"></iframe>
     </div>
   </div>
-  <div id="status">Initializing WASM compiler...</div>
+  <div id="status" class="loading">Initializing WASM compiler...</div>
+  <div id="drop-overlay">Drop .md file to load</div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

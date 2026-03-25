@@ -214,3 +214,98 @@ describe("footnotes", () => {
     expect(result).toContain("\\[^missing\\]");
   });
 });
+
+describe("regression: Typst function calls use # prefix", () => {
+  // Guard against the class of bug where a Typst function/variable name
+  // is emitted as a bare identifier (renders as literal text in PDF).
+
+  it("thematic break starts with #", () => {
+    const result = toTypst("---");
+    expect(result).toMatch(/^#/);
+    expect(result).toBe("#horizontalrule");
+  });
+
+  it("link output starts with #link", () => {
+    const result = toTypst("[click](https://example.com)");
+    expect(result).toMatch(/^#link\(/);
+  });
+
+  it("blockquote output starts with #quote", () => {
+    const result = toTypst("> hello");
+    expect(result).toMatch(/^#quote\(/);
+  });
+
+  it("table output starts with #table", () => {
+    const result = toTypst("| A |\n|---|\n| 1 |");
+    expect(result).toMatch(/^#table\(/);
+  });
+
+  it("footnote output contains #footnote", () => {
+    const result = toTypst("Text[^1]\n\n[^1]: Note");
+    expect(result).toContain("#footnote[");
+  });
+
+  it("no bare identifiers leak as Typst function names", () => {
+    // Compile a document that exercises every node type and check that
+    // known Typst function names only appear prefixed with #.
+    const md = [
+      "# Heading",
+      "",
+      "Paragraph with **bold** and *italic* and `code`.",
+      "",
+      "[link](https://example.com)",
+      "",
+      "> blockquote",
+      "",
+      "---",
+      "",
+      "| A | B |",
+      "|---|---|",
+      "| 1 | 2 |",
+      "",
+      "Text[^1]",
+      "",
+      "[^1]: Footnote",
+      "",
+      "- list item",
+      "",
+      "1. ordered",
+    ].join("\n");
+
+    const result = toTypst(md);
+
+    // These Typst identifiers must only appear after #
+    const typstFunctions = [
+      "horizontalrule",
+      "footnote",
+      "table",
+      "quote",
+      "link",
+    ];
+
+    for (const fn of typstFunctions) {
+      // Find all occurrences and verify each is preceded by #
+      const regex = new RegExp(`(?<!#)(?<![a-zA-Z])${fn}(?=\\(|\\[|\\b)`, "g");
+      const bareMatches = result.match(regex);
+      // Filter out occurrences inside content blocks [...] or strings
+      // by checking that each match in the output is preceded by #
+      const allOccurrences = [...result.matchAll(new RegExp(fn, "g"))];
+      for (const match of allOccurrences) {
+        const idx = match.index!;
+        // Skip if inside a content block (e.g., table cell [footnote...])
+        // Only check top-level function calls
+        if (idx > 0 && result[idx - 1] === "#") continue;
+        // Allow inside content blocks like [Footnote] or code blocks
+        // Check if this is a bare top-level identifier
+        const before = result.slice(Math.max(0, idx - 20), idx);
+        const isInsideBlock =
+          before.includes("[") && !before.includes("]");
+        const isInsideCode = before.includes("```");
+        if (!isInsideBlock && !isInsideCode) {
+          // This would be a bare identifier — it should have # prefix
+          expect(result[idx - 1]).toBe("#");
+        }
+      }
+    }
+  });
+});
