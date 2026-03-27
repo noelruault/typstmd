@@ -1,0 +1,1 @@
+Is of UPMOST important to keep the "integrity" of having markdown and typst super detached, in the sense of when we write typst is actually real typst code, same for markdown, so when you write some plugin or some stuff, the editor must see only what bare bones vanilla typst would provide (okay, maybe with plugin functionality if for example icons are not supported by default)
