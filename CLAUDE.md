@@ -36,6 +36,21 @@ Markdown files use YAML front matter (`title`, `author`, `date`) which the templ
 - **pandoc** and **typst** are required (script checks and exits if missing)
 - **mermaid-filter** + **@mermaid-js/mermaid-cli** (npm, optional, only for `--mermaid`)
 
+## Strict design guideline: Markdown/Typst separation
+
+Markdown and Typst must remain strictly separate. The pipeline has two clean boundaries:
+
+1. **Markdown layer** (remark plugins): transforms markdown syntax into MDAST nodes. All markdown-specific logic (emoji shortcodes, subscript syntax, GFM extensions) is resolved here. No Typst leaks into this layer.
+2. **Typst layer** (serializer output): emits real, valid, idiomatic Typst code. Every line of generated output must be standalone Typst that any user could paste into a `.typ` file and compile independently.
+
+**Rules:**
+- Never invent custom Typst syntax, non-standard macros, or a hybrid format.
+- Never blend markdown syntax into Typst output.
+- Generated Typst must not depend on hidden context that isn't present in the output itself.
+- Plugins must operate at the markdown parse layer (remark plugins) or produce standard Typst constructs. They must not change the core authoring model.
+- The source view must show code that any Typst user would recognize as plain Typst.
+- Only add plugin-specific Typst features when genuinely necessary (e.g., icon support not available natively in Typst).
+
 ## Known limitations
 
 Check GitHub Issues labeled `improvement`:

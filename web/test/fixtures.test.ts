@@ -4,14 +4,23 @@ import { join } from "path";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
+import remarkEmoji from "remark-emoji";
+import remarkSubSuper from "../src/remark-sub-super";
+import remarkHighlight from "../src/remark-highlight";
 import { mdastToTypst } from "../src/mdast-to-typst";
 import { createWarningCollector } from "../src/warnings";
 
 const FIXTURES_DIR = join(import.meta.dir, "fixtures");
 
-/** Parse markdown to MDAST and serialize to Typst body (no template) */
+/** Parse markdown to MDAST (with all plugins) and serialize to Typst body (no template) */
 function toTypst(md: string): string {
-  const tree = unified().use(remarkParse).use(remarkGfm).parse(md);
+  const processor = unified()
+    .use(remarkParse)
+    .use(remarkGfm, { singleTilde: false })
+    .use(remarkEmoji)
+    .use(remarkSubSuper)
+    .use(remarkHighlight);
+  const tree = processor.runSync(processor.parse(md));
   const warnings = createWarningCollector();
   return mdastToTypst(tree, { warnings });
 }

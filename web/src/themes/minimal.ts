@@ -4,12 +4,6 @@ export const minimalTheme: Theme = {
   id: "minimal",
   name: "Minimal",
   template: `
-#let horizontalrule = [
-  #v(6pt)
-  #line(length: 30%, stroke: 0.5pt + luma(180))
-  #v(6pt)
-]
-
 #let conf(
   title: none,
   authors: (),
@@ -39,7 +33,7 @@ export const minimalTheme: Theme = {
 
   set text(
     lang: lang,
-    font: font,
+    font: (font, "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji"),
     size: fontsize,
   )
 

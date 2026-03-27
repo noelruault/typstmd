@@ -4,12 +4,6 @@ export const academicTheme: Theme = {
   id: "academic",
   name: "Academic",
   template: `
-#let horizontalrule = [
-  #v(4pt)
-  #line(length: 100%, stroke: 0.5pt + luma(200))
-  #v(4pt)
-]
-
 #let conf(
   title: none,
   authors: (),
@@ -46,7 +40,7 @@ export const academicTheme: Theme = {
 
   set text(
     lang: lang,
-    font: font,
+    font: (font, "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji"),
     size: fontsize,
   )
 

@@ -99,6 +99,27 @@ interface MdastFootnoteReference extends Node {
 interface MdastDelete extends Parent {
   type: "delete";
 }
+interface MdastImageReference extends Node {
+  type: "imageReference";
+  identifier: string;
+  alt?: string | null;
+  referenceType?: string;
+}
+interface MdastDefinition extends Node {
+  type: "definition";
+  identifier: string;
+  url: string;
+  title?: string | null;
+}
+interface MdastSubscript extends Parent {
+  type: "subscript";
+}
+interface MdastSuperscript extends Parent {
+  type: "superscript";
+}
+interface MdastMark extends Parent {
+  type: "mark";
+}
 
 // ── Serializer ──────────────────────────────────────────────────────
 
@@ -114,8 +135,24 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
   const footnoteRefCount = new Map<string, number>();
   collectFootnotes(tree, footnoteDefs);
 
+  // Definition resolution (for imageReference nodes)
+  const definitionDefs = new Map<string, string>();
+  collectDefinitions(tree, definitionDefs);
+
   function serializeChildren(node: Parent, sep = ""): string {
     return node.children.map((child) => serialize(child)).join(sep);
+  }
+
+  function emitImage(url: string, alt: string): string {
+    const isRemote = /^https?:\/\//i.test(url);
+    if (isRemote) {
+      // Remote URLs: Typst CLI can't fetch them. Emit placeholder.
+      const desc = alt || url;
+      return escapeText(`[Image: ${desc}]`);
+    }
+    return alt
+      ? `#figure(image("${escapeUrl(url)}"), caption: [${escapeText(alt)}])`
+      : `#figure(image("${escapeUrl(url)}"))`;
   }
 
   function serialize(node: Node): string {
@@ -171,7 +208,7 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
         return serializeList(node as MdastList, 0);
 
       case "thematicBreak":
-        return "#horizontalrule";
+        return "#block[#v(6pt)#line(length: 100%, stroke: 0.5pt + luma(180))#v(6pt)]";
 
       case "break":
         return " \\\n";
@@ -195,20 +232,41 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
       case "image": {
         const img = node as MdastImage;
-        const desc = img.alt || img.url || "image";
-        warnings.warn("image", `Image deferred: ${desc}`);
-        return escapeText(`[Image: ${desc}]`);
+        const url = img.url || "";
+        const alt = img.alt || "";
+        if (url) {
+          return emitImage(url, alt);
+        }
+        return escapeText(`[Image: ${alt || "no source"}]`);
       }
 
-      case "delete": {
-        const del = node as MdastDelete;
-        const text = serializeChildren(del);
-        warnings.warn(
-          "delete",
-          `Strikethrough deferred: ${text.slice(0, 40)}`,
-        );
-        return escapeText(`[~~${text}~~]`);
+      case "imageReference": {
+        const ref = node as MdastImageReference;
+        const id = ref.identifier;
+        const def = definitionDefs.get(id);
+        const alt = ref.alt || "";
+        if (def) {
+          return emitImage(def, alt);
+        }
+        warnings.warn("imageReference", `Unresolved image reference: ${id}`);
+        return escapeText(`[Image: ${alt || id}]`);
       }
+
+      case "definition":
+        // Consumed by the definition collection pass
+        return "";
+
+      case "delete":
+        return `#strike[${serializeChildren(node as MdastDelete)}]`;
+
+      case "subscript":
+        return `#sub[${serializeChildren(node as MdastSubscript)}]`;
+
+      case "superscript":
+        return `#super[${serializeChildren(node as MdastSuperscript)}]`;
+
+      case "mark":
+        return `#highlight[${serializeChildren(node as MdastMark)}]`;
 
       // ── Unsupported nodes: warn + placeholder ──
 
@@ -336,6 +394,21 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
+
+function collectDefinitions(
+  tree: Node,
+  defs: Map<string, string>,
+) {
+  if (tree.type === "definition") {
+    const d = tree as MdastDefinition;
+    defs.set(d.identifier, d.url);
+  }
+  if ("children" in tree) {
+    for (const child of (tree as Parent).children) {
+      collectDefinitions(child, defs);
+    }
+  }
+}
 
 function collectFootnotes(
   tree: Node,

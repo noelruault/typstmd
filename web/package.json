@@ -11,6 +11,7 @@
   "dependencies": {
     "@myriaddreamin/typst-ts-web-compiler": "0.6.0",
     "@myriaddreamin/typst.ts": "0.6.0",
+    "remark-emoji": "^5.0.2",
     "remark-frontmatter": "5.0.0",
     "remark-gfm": "4.0.0",
     "remark-parse": "11.0.0",

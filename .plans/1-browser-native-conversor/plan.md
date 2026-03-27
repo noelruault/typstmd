@@ -1,8 +1,8 @@
-# Plan: Browser-Native Markdown→PDF (feature/web)
+# Plan: Browser-Native Markdown Subset → PDF (feature/web)
 
 ## Goal
 
-Build a fully client-side web app that converts Markdown to PDF in the browser. No server, no Pandoc. The target is **not** "replace Pandoc for all markdown" — it is "support a declared CommonMark + GFM subset, equivalent to what `example.md` exercises, and expand deliberately."
+Build a fully client-side web app that converts a **declared CommonMark + GFM subset** to PDF in the browser via Typst. No server, no Pandoc. This is not a generic Markdown→PDF converter — it supports the subset exercised by `example.md` and expands deliberately. Unsupported syntax produces warnings and placeholders, never silent data loss.
 
 ## Compatibility target
 
@@ -19,12 +19,17 @@ Build a fully client-side web app that converts Markdown to PDF in the browser. 
 | Block quotes | Supported | Including nested |
 | Unordered lists | Supported | Including nested |
 | Ordered lists | Supported | Including nested |
-| GFM tables | Supported | Simple column layout only |
+| GFM tables | Supported (partial) | Cell content supported; column alignment metadata (`---:`) ignored with warning |
 | Footnotes | Supported | Block content; repeated references via labeled Typst footnotes |
 | Thematic breaks | Supported | |
 | Soft/hard line breaks | Supported | CommonMark semantics: soft breaks → spaces, hard breaks → `\`. NOT GitHub-style newline-as-break (see Section 9). |
-| Images | Deferred | Complex browser constraints (CORS, async fetch, blob lifetimes) — own subsystem later |
-| Strikethrough | Deferred | Trivial to add but not in current template |
+| Images (local) | Supported | `#figure(image("path"), caption: [...])` — local paths only; remote URLs produce placeholder |
+| Images (remote/WASM) | Deferred | Remote URLs can't be fetched by Typst CLI; WASM needs fetch→addSource pipeline |
+| Strikethrough | Supported | `#strike[text]` via remark-gfm `delete` nodes |
+| Subscript / Superscript | Supported | `#sub[text]` / `#super[text]` via custom remark plugin (`~text~` / `^text^`) |
+| Highlight | Supported | `#highlight[text]` via custom remark plugin (`==text==`) |
+| Emoji (unicode) | Supported | Font fallback (Apple Color Emoji, Noto, Segoe UI) in all themes |
+| Emoji (colon syntax) | Supported | `:wink:` → 😉 via `remark-emoji` plugin |
 | Task lists | Deferred | |
 | Autolink literals | Deferred | |
 | HTML blocks/inline | Unsupported | Stripped with warning |
@@ -52,44 +57,27 @@ Markdown string
 
 ## Project structure
 
-```
-web/
-  index.html
-  src/
-    main.ts                 -- Bootstrap, UI events, pipeline orchestration
-    pipeline.ts             -- unified pipeline: parse → extract → transform → assemble
-    mdast-to-typst.ts       -- MDAST tree → Typst markup (core serializer)
-    typst-escape.ts         -- First-class escaping module (context-aware)
-    typst-compiler.ts       -- Wrapper around typst.ts WASM, pinned API surface
-    template.ts             -- Pure Typst template string (ported from md-template.typ)
-    frontmatter.ts          -- YAML → typed metadata object → strict Typst value encoder
-    warnings.ts             -- Warning collector for unsupported nodes / issues
-  test/
-    fixtures/               -- Markdown input → expected Typst output pairs
-    mdast-to-typst.test.ts  -- Snapshot tests for the transformer
-    typst-escape.test.ts    -- Edge-case tests for escaping
-    frontmatter.test.ts     -- Metadata encoding tests
-  package.json
-  vite.config.ts
-  tsconfig.json
-  vitest.config.ts
-```
+See "Project structure (actual)" below for the implemented layout.
+
+## Tooling
+
+**Tooling changed from the original plan's Vite/Vitest to Bun.** Bun handles dev server (`Bun.serve()`), bundling (`Bun.build()`), and testing (`bun test`) in a single runtime. Feature architecture is unchanged. This was a deliberate trade-off for lower overhead and simpler dependency chain.
 
 ## Dependencies
 
-**Runtime (pin exact versions):**
-- `unified` — pipeline orchestrator
-- `remark-parse` — Markdown → MDAST
-- `remark-frontmatter` — YAML block extraction
-- `remark-gfm` — tables, footnotes, strikethrough, task lists, autolinks
-- `yaml` — parse YAML strings
-- `@myriaddreamin/typst.ts` — high-level compiler wrapper
-- `@myriaddreamin/typst-ts-web-compiler` — WASM module
+**Runtime (pinned):**
+- `unified@11.0.5` — pipeline orchestrator
+- `remark-parse@11.0.0` — Markdown → MDAST
+- `remark-frontmatter@5.0.0` — YAML block extraction
+- `remark-gfm@4.0.0` — tables, footnotes, strikethrough, task lists, autolinks
+- `yaml@2.7.1` — parse YAML strings
+- `@myriaddreamin/typst.ts@0.6.0` — high-level compiler wrapper
+- `@myriaddreamin/typst-ts-web-compiler@0.6.0` — WASM module
 
 **Dev:**
-- `vite`, `typescript`, `vitest`
+- `typescript@5.7.3`, `@types/bun@1.2.9`
 
-No framework. No PDF viewer library (browser renders PDFs in `<iframe>`).
+No framework. No Vite. No Vitest. No PDF viewer library (browser renders PDFs in `<iframe>`).
 
 ## Key design decisions
 
@@ -225,7 +213,7 @@ This means markdown written for GitHub with single-newline line breaks will refl
 6. **Gate:** typing markdown produces correct styled Typst. Unsupported nodes show contextual warnings. Auto-recompilation works.
 
 ### Phase 3 — Structural markdown ✓
-1. Add lists (ordered `+`, unordered `-`, nested with indent tracking)
+1. Add lists — Typst output uses `+` for ordered and `-` for unordered (Typst syntax, not markdown semantics); nested via indent tracking
 2. Add blockquotes (including nested, via `#quote(block: true)[...]`)
 3. Add thematic breaks (`#horizontalrule` variable reference)
 4. **Gate:** structural nesting renders correctly.
@@ -241,8 +229,8 @@ This means markdown written for GitHub with single-newline line breaks will refl
 2. Added `themes/minimal.ts` (clean, wider margins, centered page numbers)
 3. Added `themes/academic.ts` (New Computer Modern, justified, numbered headings)
 4. Theme registry (`themes/index.ts`) + UI dropdown for runtime switching
-5. Source/Editor toggle (Obsidian-style) showing full generated Typst source
-6. **Known differences from CLI:** font depends on CDN availability (Libertinus Serif not bundled yet); `example.md` produces image/strikethrough/HTML warnings (deferred nodes)
+5. Source/Editor toggle (Obsidian-style) showing full generated Typst source. This is clearly a generated/debug view — the textarea becomes read-only with a distinct background color when in source mode.
+6. **Known differences from CLI:** font rendering depends on CDN availability (Libertinus Serif not bundled — offline/air-gapped/flaky network use will produce different font fallbacks, which affects layout and page count). `example.md` produces image/strikethrough warnings (deferred nodes). Theme fidelity may vary silently when fonts are unavailable.
 
 ### Phase 6 — Polish ✓
 1. Drag-and-drop `.md` / `.markdown` files with visual overlay
@@ -254,15 +242,14 @@ This means markdown written for GitHub with single-newline line breaks will refl
 - Libertinus Serif font bundling (load via `$typst.setFonts()` for offline use)
 - Image subsystem (async fetch, CORS handling, blob lifecycle, caching)
 - Mermaid support (client-side `mermaid` npm → SVG → embed)
-- Strikethrough, task lists, autolinks
+- Task lists, autolinks
 - Service worker for offline
 - GitHub Pages deployment
 - Custom font upload
-- Compile smoke tests via WASM (asserting valid PDF bytes from generated markup)
 
 ## Test strategy
 
-96 tests across 5 test files, all using Bun's native test runner (`bun test`).
+114 tests across 6 test files, all using Bun's native test runner (`bun test`).
 
 ### Test files
 
@@ -272,13 +259,14 @@ This means markdown written for GitHub with single-newline line breaks will refl
 
 3. **`test/frontmatter.test.ts`** (14 tests) — YAML extraction + Typst encoding. Covers: missing frontmatter, single/multiple authors, special char escaping, empty metadata.
 
-4. **`test/fixtures.test.ts`** (8 tests) — Snapshot tests using `.md` → `.typ` file pairs in `test/fixtures/`. Auto-discovers fixtures. Covers: headings, emphasis, code, links, lists, tables, blockquotes, escaping, footnotes.
+4. **`test/fixtures.test.ts`** (9 tests) — Snapshot tests using `.md` → `.typ` file pairs in `test/fixtures/`. Auto-discovers fixtures. Covers: headings, emphasis, code, links, lists, tables, blockquotes, escaping, footnotes.
 
-5. **`test/pipeline.test.ts`** (6 tests) — Integration tests for the full pipeline. Covers: basic markdown, theme inclusion, frontmatter metadata, warning collection, theme switching, and `example.md` end-to-end conversion.
+5. **`test/pipeline.test.ts`** (7 tests) — Integration tests for the full pipeline. Covers: basic markdown, theme inclusion, frontmatter metadata, warning collection (including all deferred node types in `example.md`), theme switching, `example.md` end-to-end, and zero-false-warning verification for supported syntax.
+
+6. **`test/compile-smoke.test.ts`** (17 tests) — Compile smoke tests using the `typst` CLI binary. Each test generates Typst source from markdown via the pipeline and compiles it with `typst compile`, asserting zero errors. Covers: every node type, all three themes, special characters, deferred/unsupported nodes, mixed formatting, frontmatter, and `example.md` end-to-end with PDF validity check (magic bytes + minimum size). Requires `typst` CLI to be installed.
 
 ### Not yet implemented
-- **Compile smoke tests**: passing generated Typst through WASM compiler to assert valid PDF output (requires WASM in test environment)
-- **CLI parity regression**: side-by-side comparison of web vs CLI PDF output for `example.md`
+- **CLI parity regression with text extraction**: side-by-side text-diff comparison of web vs CLI PDF output for `example.md`. Requires `pdftotext` or equivalent. Currently validated visually and via structural assertions.
 
 ## Project structure (actual)
 
@@ -308,7 +296,8 @@ web/
     mdast-to-typst.test.ts      -- 38 serializer tests + regression guards
     frontmatter.test.ts         -- 14 metadata tests
     fixtures.test.ts            -- Snapshot test runner (auto-discovers .md/.typ pairs)
-    pipeline.test.ts            -- 6 integration tests (incl. example.md e2e)
+    pipeline.test.ts            -- 7 integration tests (incl. example.md e2e + warning coverage)
+    compile-smoke.test.ts       -- 17 compile tests via typst CLI (validates generated markup)
     fixtures/                   -- .md → .typ snapshot pairs
       headings.md / .typ
       emphasis.md / .typ

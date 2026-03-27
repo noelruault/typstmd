@@ -2,18 +2,30 @@ import { describe, it, expect } from "bun:test";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
+import remarkSubSuper from "../src/remark-sub-super";
+import remarkHighlight from "../src/remark-highlight";
 import { mdastToTypst } from "../src/mdast-to-typst";
 import { createWarningCollector } from "../src/warnings";
 
+function makeProcessor() {
+  return unified()
+    .use(remarkParse)
+    .use(remarkGfm, { singleTilde: false })
+    .use(remarkSubSuper)
+    .use(remarkHighlight);
+}
+
 /** Parse markdown to MDAST and serialize to Typst body (no template) */
 function toTypst(md: string): string {
-  const tree = unified().use(remarkParse).use(remarkGfm).parse(md);
+  const processor = makeProcessor();
+  const tree = processor.runSync(processor.parse(md));
   const warnings = createWarningCollector();
   return mdastToTypst(tree, { warnings });
 }
 
 function getWarnings(md: string) {
-  const tree = unified().use(remarkParse).use(remarkGfm).parse(md);
+  const processor = makeProcessor();
+  const tree = processor.runSync(processor.parse(md));
   const warnings = createWarningCollector();
   mdastToTypst(tree, { warnings });
   return warnings.getWarnings();
@@ -101,7 +113,7 @@ describe("links", () => {
 
 describe("thematic breaks", () => {
   it("renders horizontal rule", () => {
-    expect(toTypst("---")).toBe("#horizontalrule");
+    expect(toTypst("---")).toBe("#block[#v(6pt)#line(length: 100%, stroke: 0.5pt + luma(180))#v(6pt)]");
   });
 });
 
@@ -128,18 +140,65 @@ describe("escaping", () => {
   });
 });
 
-describe("unsupported nodes", () => {
-  it("warns on images", () => {
-    const w = getWarnings("![alt](http://img.png)");
-    expect(w.some((w) => w.nodeType === "image")).toBe(true);
+describe("strikethrough", () => {
+  it("renders strikethrough with #strike", () => {
+    expect(toTypst("~~deleted~~")).toBe("#strike[deleted]");
   });
 
-  it("renders image placeholder", () => {
-    expect(toTypst("![alt text](http://img.png)")).toContain(
+  it("does not warn on strikethrough", () => {
+    const w = getWarnings("~~deleted~~");
+    expect(w.some((w) => w.nodeType === "delete")).toBe(false);
+  });
+});
+
+describe("images", () => {
+  it("renders remote image as placeholder", () => {
+    expect(toTypst("![alt text](http://img.png)")).toBe(
       "\\[Image: alt text\\]",
     );
   });
 
+  it("renders local image with #figure", () => {
+    expect(toTypst("![alt text](./photo.png)")).toBe(
+      '#figure(image("./photo.png"), caption: [alt text])',
+    );
+  });
+
+  it("renders local image without alt", () => {
+    expect(toTypst("![](./photo.png)")).toBe(
+      '#figure(image("./photo.png"))',
+    );
+  });
+
+  it("does not warn on images with URL", () => {
+    const w = getWarnings("![alt](http://img.png)");
+    expect(w.some((w) => w.nodeType === "image")).toBe(false);
+  });
+});
+
+describe("subscript", () => {
+  it("renders subscript with #sub", () => {
+    expect(toTypst("H~2~O")).toBe("H#sub[2]O");
+  });
+});
+
+describe("superscript", () => {
+  it("renders superscript with #super", () => {
+    expect(toTypst("19^th^")).toBe("19#super[th]");
+  });
+});
+
+describe("highlight", () => {
+  it("renders highlight with #highlight", () => {
+    expect(toTypst("==marked==")).toBe("#highlight[marked]");
+  });
+
+  it("renders inline highlight", () => {
+    expect(toTypst("before ==marked== after")).toBe("before #highlight[marked] after");
+  });
+});
+
+describe("unsupported nodes", () => {
   it("warns on HTML", () => {
     const w = getWarnings("<div>html</div>");
     expect(w.some((w) => w.nodeType === "html")).toBe(true);
@@ -147,11 +206,6 @@ describe("unsupported nodes", () => {
 
   it("renders HTML placeholder", () => {
     expect(toTypst("<div>html</div>")).toContain("\\[HTML block removed\\]");
-  });
-
-  it("warns on strikethrough", () => {
-    const w = getWarnings("~~deleted~~");
-    expect(w.some((w) => w.nodeType === "delete")).toBe(true);
   });
 });
 
@@ -221,8 +275,7 @@ describe("regression: Typst function calls use # prefix", () => {
 
   it("thematic break starts with #", () => {
     const result = toTypst("---");
-    expect(result).toMatch(/^#/);
-    expect(result).toBe("#horizontalrule");
+    expect(result).toMatch(/^#block\[/);
   });
 
   it("link output starts with #link", () => {
@@ -270,17 +323,24 @@ describe("regression: Typst function calls use # prefix", () => {
       "- list item",
       "",
       "1. ordered",
+      "",
+      "~~strikethrough~~",
+      "",
+      "~~strikethrough~~",
+      "",
+      "![alt](./local.png)",
     ].join("\n");
 
     const result = toTypst(md);
 
     // These Typst identifiers must only appear after #
     const typstFunctions = [
-      "horizontalrule",
       "footnote",
       "table",
       "quote",
       "link",
+      "strike",
+      "figure",
     ];
 
     for (const fn of typstFunctions) {
@@ -289,7 +349,8 @@ describe("regression: Typst function calls use # prefix", () => {
       const bareMatches = result.match(regex);
       // Filter out occurrences inside content blocks [...] or strings
       // by checking that each match in the output is preceded by #
-      const allOccurrences = [...result.matchAll(new RegExp(fn, "g"))];
+      // Match function name only when followed by ( or [ (actual function call syntax)
+      const allOccurrences = [...result.matchAll(new RegExp(`${fn}(?=[\\(\\[])`, "g"))];
       for (const match of allOccurrences) {
         const idx = match.index!;
         // Skip if inside a content block (e.g., table cell [footnote...])

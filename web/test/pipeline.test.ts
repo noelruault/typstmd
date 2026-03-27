@@ -14,7 +14,6 @@ describe("pipeline integration", () => {
 
   it("includes theme template in output", () => {
     const result = markdownToTypst("# Test", { themeId: "default" });
-    expect(result.typstSource).toContain("#let horizontalrule");
     expect(result.typstSource).toContain("#let conf(");
     expect(result.typstSource).toContain("#show: doc => conf(doc)");
   });
@@ -28,10 +27,9 @@ describe("pipeline integration", () => {
   });
 
   it("collects warnings for unsupported nodes", () => {
-    const md = "![img](http://img.png)\n\n<div>html</div>";
+    const md = "<div>html</div>";
     const result = markdownToTypst(md);
     expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings.some((w) => w.nodeType === "image")).toBe(true);
     expect(result.warnings.some((w) => w.nodeType === "html")).toBe(true);
   });
 
@@ -66,7 +64,54 @@ describe("pipeline integration", () => {
     expect(result.typstSource).toContain("#table(columns:");
     // Footnotes from example.md
     expect(result.typstSource).toContain("#footnote[");
-    // Images are deferred — should have warnings
-    expect(result.warnings.some((w) => w.nodeType === "image")).toBe(true);
+
+    // Warnings for remaining unsupported/edge-case nodes.
+    // Images and strikethrough are now supported (no warnings).
+    // imageReference with definitions is now resolved (no warning).
+    const warnTypes = result.warnings.map((w) => w.nodeType);
+    expect(warnTypes).toContain("table");          // alignment metadata warning
+  });
+
+  it("warns on zero supported syntax that is silently dropped", () => {
+    // Every node type that produces output should NOT generate a warning.
+    // This test ensures supported syntax doesn't accidentally trigger warnings.
+    const md = [
+      "# Heading",
+      "",
+      "Paragraph with **bold** and *italic*.",
+      "",
+      "`inline code`",
+      "",
+      "```js",
+      "code block",
+      "```",
+      "",
+      "[link](https://example.com)",
+      "",
+      "> blockquote",
+      "",
+      "---",
+      "",
+      "- list",
+      "",
+      "1. ordered",
+      "",
+      "| A |",
+      "|---|",
+      "| 1 |",
+      "",
+      "Text[^1]",
+      "",
+      "[^1]: Note",
+      "",
+      "~~strikethrough~~",
+      "",
+      "H~2~O and 19^th^",
+      "",
+      "==highlighted==",
+    ].join("\n");
+
+    const result = markdownToTypst(md);
+    expect(result.warnings).toHaveLength(0);
   });
 });

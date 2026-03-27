@@ -4,12 +4,6 @@ export const defaultTheme: Theme = {
   id: "default",
   name: "Default",
   template: `
-#let horizontalrule = [
-  #v(1pt)
-  #line(start: (25%,0%), end: (75%,0%), stroke: 1pt + white)
-  #v(1pt)
-]
-
 #let conf(
   title: none,
   authors: (),
@@ -45,7 +39,7 @@ export const defaultTheme: Theme = {
 
   set text(
     lang: lang,
-    font: font,
+    font: (font, "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji"),
     size: fontsize,
   )
 
