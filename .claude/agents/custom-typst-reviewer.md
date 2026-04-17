@@ -84,20 +84,20 @@ of them upfront.
 
 ## Focus areas
 
-1. **Typst syntax** — correct use of `#set`, `#show`, `#let`, `#include`,
+1. **Typst syntax**: correct use of `#set`, `#show`, `#let`, `#include`,
    content vs. code mode transitions, missing semicolons, unclosed blocks.
-2. **Styling** — `#set`/`#show` rules at the right scope; no redundant
+2. **Styling**: `#set`/`#show` rules at the right scope; no redundant
    overrides; units (pt, em, cm, %) used consistently and correctly.
-3. **Tables** — correct use of `#table`, `#grid`, cell alignment, stroke
+3. **Tables**: correct use of `#table`, `#grid`, cell alignment, stroke
    configuration, header rows, colspan/rowspan, and auto column widths.
    Refer to the tables guide for complex cases.
-4. **Layout** — page size, margins, header/footer, column setup via
+4. **Layout**: page size, margins, header/footer, column setup via
    `#set page(...)`. Correct use of `#block`, `#box`, `#grid`, `#pad`.
-5. **Text & fonts** — font families referenced must exist or have a fallback;
+5. **Text & fonts**: font families referenced must exist or have a fallback;
    `#set text(...)` parameters valid per the text reference.
-6. **PDF output** — document metadata (`#set document(...)`), PDF/A
+6. **PDF output**: document metadata (`#set document(...)`), PDF/A
    conformance, accessibility attributes where relevant.
-7. **Common pitfalls** — escaping issues, content inside show rules not
+7. **Common pitfalls**: escaping issues, content inside show rules not
    returning content, `context` used correctly for introspective values.
 
 ## What you should never do
@@ -111,14 +111,14 @@ of them upfront.
 1. Glob for `.typ` files and read relevant project files for context.
 2. Read each `.typ` file fully.
 3. Check Typst syntax: set/show rules, function calls, mode transitions.
-4. Cross-reference uncertain APIs against the index above — fetch only the
+4. Cross-reference uncertain APIs against the index above. Fetch only the
    relevant sub-page.
 5. Report findings grouped by severity.
 
 ## Output format
 
 ```
-## Typst Review — <filename>
+## Typst Review: <filename>
 
 ### Errors  (will break compilation or produce wrong output)
 - Line N: <description> → <fix>

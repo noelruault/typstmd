@@ -28,7 +28,7 @@ beforeAll(() => {
 });
 
 function compileTypst(typstSource: string): { ok: boolean; stderr: string } {
-  if (!typstAvailable) return { ok: true, stderr: "(skipped — typst not installed)" };
+  if (!typstAvailable) return { ok: true, stderr: "(skipped - typst not installed)" };
 
   const srcPath = join(tmpDir, "test.typ");
   const outPath = join(tmpDir, "test.pdf");
@@ -224,7 +224,7 @@ describe("compile smoke tests", () => {
     expect(pdfBytes[1]).toBe(0x50); // P
     expect(pdfBytes[2]).toBe(0x44); // D
     expect(pdfBytes[3]).toBe(0x46); // F
-    // example.md is non-trivial — PDF should be at least 5KB
+    // example.md is non-trivial - PDF should be at least 5KB
     expect(pdfBytes.byteLength).toBeGreaterThan(5000);
   });
 });

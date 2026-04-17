@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a fully client-side web app that converts a **declared CommonMark + GFM subset** to PDF in the browser via Typst. No server, no Pandoc. This is not a generic Markdown→PDF converter — it supports the subset exercised by `example.md` and expands deliberately. Unsupported syntax produces warnings and placeholders, never silent data loss.
+Build a fully client-side web app that converts a **declared CommonMark + GFM subset** to PDF in the browser via Typst. No server, no Pandoc. This is not a generic Markdown→PDF converter; it supports the subset exercised by `example.md` and expands deliberately. Unsupported syntax produces warnings and placeholders, never silent data loss.
 
 ## Compatibility target
 
@@ -10,7 +10,7 @@ Build a fully client-side web app that converts a **declared CommonMark + GFM su
 
 | Node type | Status | Notes |
 |---|---|---|
-| Headings (1-3) | Supported (normalized) | Levels 4-6 are normalized to level 3 — this is a lossy transform |
+| Headings (1-3) | Supported (normalized) | Levels 4-6 are normalized to level 3 (lossy transform) |
 | Paragraphs | Supported | |
 | Strong / emphasis | Supported | |
 | Inline code | Supported | |
@@ -23,7 +23,7 @@ Build a fully client-side web app that converts a **declared CommonMark + GFM su
 | Footnotes | Supported | Block content; repeated references via labeled Typst footnotes |
 | Thematic breaks | Supported | |
 | Soft/hard line breaks | Supported | CommonMark semantics: soft breaks → spaces, hard breaks → `\`. NOT GitHub-style newline-as-break (see Section 9). |
-| Images (local) | Supported | `#figure(image("path"), caption: [...])` — local paths only; remote URLs produce placeholder |
+| Images (local) | Supported | `#figure(image("path"), caption: [...])` - local paths only; remote URLs produce placeholder |
 | Images (remote/WASM) | Deferred | Remote URLs can't be fetched by Typst CLI; WASM needs fetch→addSource pipeline |
 | Strikethrough | Supported | `#strike[text]` via remark-gfm `delete` nodes |
 | Subscript / Superscript | Supported | `#sub[text]` / `#super[text]` via custom remark plugin (`~text~` / `^text^`) |
@@ -66,13 +66,13 @@ See "Project structure (actual)" below for the implemented layout.
 ## Dependencies
 
 **Runtime (pinned):**
-- `unified@11.0.5` — pipeline orchestrator
-- `remark-parse@11.0.0` — Markdown → MDAST
-- `remark-frontmatter@5.0.0` — YAML block extraction
-- `remark-gfm@4.0.0` — tables, footnotes, strikethrough, task lists, autolinks
-- `yaml@2.7.1` — parse YAML strings
-- `@myriaddreamin/typst.ts@0.6.0` — high-level compiler wrapper
-- `@myriaddreamin/typst-ts-web-compiler@0.6.0` — WASM module
+- `unified@11.0.5`: pipeline orchestrator
+- `remark-parse@11.0.0`: Markdown → MDAST
+- `remark-frontmatter@5.0.0`: YAML block extraction
+- `remark-gfm@4.0.0`: tables, footnotes, strikethrough, task lists, autolinks
+- `yaml@2.7.1`: parse YAML strings
+- `@myriaddreamin/typst.ts@0.6.0`: high-level compiler wrapper
+- `@myriaddreamin/typst-ts-web-compiler@0.6.0`: WASM module
 
 **Dev:**
 - `typescript@5.7.3`, `@types/bun@1.2.9`
@@ -83,7 +83,7 @@ No framework. No Vite. No Vitest. No PDF viewer library (browser renders PDFs in
 
 ### 1. Escaping module (`typst-escape.ts`)
 
-Escaping is a first-class subsystem, not a bullet point. Typst has context-sensitive syntax — escaping differs between:
+Escaping is a first-class subsystem, not a bullet point. Typst has context-sensitive syntax, and escaping differs between:
 
 - **Plain text**: escape `#`, `@`, `$`, `\`, `*`, `_`, `` ` ``, `[`, `]`, `<`, `>`
 - **Inside content blocks** (`[...]`): same as plain text
@@ -125,10 +125,10 @@ Not a simple inline replacement. Proper resolution pass:
 GFM tables only (no Pandoc grid/pipe table extensions). Known constraints:
 
 - Generated as `#table(columns: N, [cell], ...)`
-- Column widths are Typst auto-sized, which matches the behavior of the Lua filter for the GFM table subset we support. This equivalence is scoped to our declared subset — Pandoc's full table model (grid tables, multiline cells, etc.) is broader than what remark-gfm produces.
+- Column widths are Typst auto-sized, which matches the behavior of the Lua filter for the GFM table subset we support. This equivalence is scoped to our declared subset. Pandoc's full table model (grid tables, multiline cells, etc.) is broader than what remark-gfm produces.
 - Header row styling handled by existing template rule `show table.cell.where(y: 0)`
 - **Not supported**: column alignment (GFM `---:` syntax), merged cells, captions
-- **Known difference from CLI**: Pandoc normalized whitespace in cells differently — our output may have minor spacing differences
+- **Known difference from CLI**: Pandoc normalized whitespace in cells differently, so our output may have minor spacing differences
 
 ### 5. List semantics
 
@@ -155,8 +155,8 @@ All typst.ts imports confined to this one file. Rest of the app only sees this i
 ### 7. Template strategy
 
 The current `templates/md-template.typ` splits cleanly:
-- **Lines 24-204**: Pure Typst `#let conf(...)` — copy verbatim into `template.ts` as a string constant
-- **Lines 208-281**: Pandoc boilerplate — replaced by `frontmatter.ts` output
+- **Lines 24-204**: Pure Typst `#let conf(...)` - copy verbatim into `template.ts` as a string constant
+- **Lines 208-281**: Pandoc boilerplate - replaced by `frontmatter.ts` output
 
 Final assembled source:
 ```
@@ -168,12 +168,12 @@ Final assembled source:
 ### 8. Error recovery and preview stability
 
 When the Typst compiler rejects generated markup (syntax error, missing font, etc.):
-- The UI retains and displays the **last successful PDF** in the iframe — the preview never goes blank on a failed compile.
+- The UI retains and displays the **last successful PDF** in the iframe. The preview never goes blank on a failed compile.
 - Errors are shown in the status bar with the Typst error message.
 - The download link stays pointed at the last successful PDF.
 - This is especially important with auto-compilation: every keystroke temporarily produces invalid intermediate markup. The user should see stable output, not a flickering blank preview.
 
-**Stale compile race handling:** With debounced auto-compile, async compiles can complete out of order. Each compile is assigned a monotonically increasing `jobId`. Results are only applied if `jobId === latestRequestedJobId` — stale success/error results are silently discarded. This prevents an older compile from overwriting the preview with stale PDF bytes.
+**Stale compile race handling:** With debounced auto-compile, async compiles can complete out of order. Each compile is assigned a monotonically increasing `jobId`. Results are only applied if `jobId === latestRequestedJobId`. Stale success/error results are silently discarded. This prevents an older compile from overwriting the preview with stale PDF bytes.
 
 **Object URL lifecycle:** Repeated recompiles create blob URLs for the iframe. To prevent memory leaks:
 - Track `currentPdfUrl: string | null`
@@ -197,14 +197,14 @@ This means markdown written for GitHub with single-newline line breaks will refl
 
 ## Phased implementation
 
-### Phase 1 — Compiler proof of concept ✓
+### Phase 1: Compiler proof of concept ✓
 1. Scaffold `web/` with Bun + TypeScript
 2. Wire WASM compiler (`@myriaddreamin/typst.ts` v0.6.0), confirm init → compile → PDF bytes
 3. Create UI: textarea, Convert button, iframe preview, download link
 4. Bun dev server with COOP/COEP headers for SharedArrayBuffer
 5. **Gate:** clicking Convert produces a valid PDF. WASM loads, compiles, and previews successfully.
 
-### Phase 2 — Core markdown subset ✓
+### Phase 2: Core markdown subset ✓
 1. Implement `typst-escape.ts` with full test suite (30 tests: text, URL, label contexts)
 2. Implement `mdast-to-typst.ts` for: headings, paragraphs, emphasis, strong, inline code, fenced code, links, soft/hard breaks
 3. Implement unsupported-node warning system with contextual placeholders
@@ -212,27 +212,27 @@ This means markdown written for GitHub with single-newline line breaks will refl
 5. Add debounced auto-compilation (500ms idle)
 6. **Gate:** typing markdown produces correct styled Typst. Unsupported nodes show contextual warnings. Auto-recompilation works.
 
-### Phase 3 — Structural markdown ✓
-1. Add lists — Typst output uses `+` for ordered and `-` for unordered (Typst syntax, not markdown semantics); nested via indent tracking
+### Phase 3: Structural markdown ✓
+1. Add lists. Typst output uses `+` for ordered and `-` for unordered (Typst syntax, not markdown semantics); nested via indent tracking
 2. Add blockquotes (including nested, via `#quote(block: true)[...]`)
 3. Add thematic breaks (`#horizontalrule` variable reference)
 4. **Gate:** structural nesting renders correctly.
 
-### Phase 4 — Tables + footnotes + frontmatter ✓
+### Phase 4: Tables + footnotes + frontmatter ✓
 1. GFM table transform: `#table(columns: N, [cell], ...)` with alignment warning
 2. Footnote resolution: collection pass, reference counting, labeled footnotes (`<fn-id>` / `@fn-id`)
 3. `frontmatter.ts`: YAML → typed Metadata → strict Typst value encoder with content blocks
 4. **Gate:** `example.md` converts end-to-end and produces a structurally complete PDF.
 
-### Phase 5 — Visual parity + themes ✓
+### Phase 5: Visual parity + themes ✓
 1. Ported full `md-template.typ` styling into `themes/default.ts`
 2. Added `themes/minimal.ts` (clean, wider margins, centered page numbers)
 3. Added `themes/academic.ts` (New Computer Modern, justified, numbered headings)
 4. Theme registry (`themes/index.ts`) + UI dropdown for runtime switching
-5. Source/Editor toggle (Obsidian-style) showing full generated Typst source. This is clearly a generated/debug view — the textarea becomes read-only with a distinct background color when in source mode.
-6. **Known differences from CLI:** font rendering depends on CDN availability (Libertinus Serif not bundled — offline/air-gapped/flaky network use will produce different font fallbacks, which affects layout and page count). `example.md` produces image/strikethrough warnings (deferred nodes). Theme fidelity may vary silently when fonts are unavailable.
+5. Source/Editor toggle (Obsidian-style) showing full generated Typst source. This is clearly a generated/debug view; the textarea becomes read-only with a distinct background color when in source mode.
+6. **Known differences from CLI:** font rendering depends on CDN availability (Libertinus Serif not bundled, so offline/air-gapped/flaky network use will produce different font fallbacks, which affects layout and page count). `example.md` produces image/strikethrough warnings (deferred nodes). Theme fidelity may vary silently when fonts are unavailable.
 
-### Phase 6 — Polish ✓
+### Phase 6: Polish ✓
 1. Drag-and-drop `.md` / `.markdown` files with visual overlay
 2. Status bar with color-coded states (loading=blue, error=red, info=default)
 3. Mobile-responsive layout (stacked panels below 768px, wrapping toolbar)
@@ -253,17 +253,17 @@ This means markdown written for GitHub with single-newline line breaks will refl
 
 ### Test files
 
-1. **`test/typst-escape.test.ts`** (30 tests) — Context-sensitive escaping for text, URLs, labels. Covers: empty strings, all special chars, adjacent markup, smart punctuation, unicode preservation.
+1. **`test/typst-escape.test.ts`** (30 tests): Context-sensitive escaping for text, URLs, labels. Covers: empty strings, all special chars, adjacent markup, smart punctuation, unicode preservation.
 
-2. **`test/mdast-to-typst.test.ts`** (38 tests) — Unit tests for the MDAST→Typst serializer. Covers every supported node type + regression tests ensuring Typst function calls use `#` prefix (guards against the `horizontalrule` literal-text class of bug).
+2. **`test/mdast-to-typst.test.ts`** (38 tests): Unit tests for the MDAST→Typst serializer. Covers every supported node type + regression tests ensuring Typst function calls use `#` prefix (guards against the `horizontalrule` literal-text class of bug).
 
-3. **`test/frontmatter.test.ts`** (14 tests) — YAML extraction + Typst encoding. Covers: missing frontmatter, single/multiple authors, special char escaping, empty metadata.
+3. **`test/frontmatter.test.ts`** (14 tests): YAML extraction + Typst encoding. Covers: missing frontmatter, single/multiple authors, special char escaping, empty metadata.
 
-4. **`test/fixtures.test.ts`** (9 tests) — Snapshot tests using `.md` → `.typ` file pairs in `test/fixtures/`. Auto-discovers fixtures. Covers: headings, emphasis, code, links, lists, tables, blockquotes, escaping, footnotes.
+4. **`test/fixtures.test.ts`** (9 tests): Snapshot tests using `.md` → `.typ` file pairs in `test/fixtures/`. Auto-discovers fixtures. Covers: headings, emphasis, code, links, lists, tables, blockquotes, escaping, footnotes.
 
-5. **`test/pipeline.test.ts`** (7 tests) — Integration tests for the full pipeline. Covers: basic markdown, theme inclusion, frontmatter metadata, warning collection (including all deferred node types in `example.md`), theme switching, `example.md` end-to-end, and zero-false-warning verification for supported syntax.
+5. **`test/pipeline.test.ts`** (7 tests): Integration tests for the full pipeline. Covers: basic markdown, theme inclusion, frontmatter metadata, warning collection (including all deferred node types in `example.md`), theme switching, `example.md` end-to-end, and zero-false-warning verification for supported syntax.
 
-6. **`test/compile-smoke.test.ts`** (17 tests) — Compile smoke tests using the `typst` CLI binary. Each test generates Typst source from markdown via the pipeline and compiles it with `typst compile`, asserting zero errors. Covers: every node type, all three themes, special characters, deferred/unsupported nodes, mixed formatting, frontmatter, and `example.md` end-to-end with PDF validity check (magic bytes + minimum size). Requires `typst` CLI to be installed.
+6. **`test/compile-smoke.test.ts`** (17 tests): Compile smoke tests using the `typst` CLI binary. Each test generates Typst source from markdown via the pipeline and compiles it with `typst compile`, asserting zero errors. Covers: every node type, all three themes, special characters, deferred/unsupported nodes, mixed formatting, frontmatter, and `example.md` end-to-end with PDF validity check (magic bytes + minimum size). Requires `typst` CLI to be installed.
 
 ### Not yet implemented
 - **CLI parity regression with text extraction**: side-by-side text-diff comparison of web vs CLI PDF output for `example.md`. Requires `pdftotext` or equivalent. Currently validated visually and via structural assertions.
@@ -326,16 +326,16 @@ No framework. No Vite. No Vitest. Bun handles dev server, bundling, and testing.
 
 | Risk | Severity | Status |
 |---|---|---|
-| WASM size (~10-15MB) | High | Accepted — lazy loaded after page render, status bar shows init state |
+| WASM size (~10-15MB) | High | Accepted: lazy loaded after page render, status bar shows init state |
 | Font availability | Medium | Using CDN fonts via `preloadRemoteFonts`. Offline/bundled fonts deferred to Future |
-| typst.ts API churn (pre-1.0) | Medium | Mitigated — pinned v0.6.0, isolated behind `TypstCompiler` interface |
-| Escaping edge cases | Low | Mitigated — first-class module with 30 dedicated tests |
-| Footnote complexity | Low | Mitigated — proper resolution pass with reference counting, 3 dedicated tests |
-| Mobile PDF preview | Low | Accepted — responsive layout implemented, download link always available |
+| typst.ts API churn (pre-1.0) | Medium | Mitigated: pinned v0.6.0, isolated behind `TypstCompiler` interface |
+| Escaping edge cases | Low | Mitigated: first-class module with 30 dedicated tests |
+| Footnote complexity | Low | Mitigated: proper resolution pass with reference counting, 3 dedicated tests |
+| Mobile PDF preview | Low | Accepted: responsive layout implemented, download link always available |
 | Image handling | High | Deferred entirely |
 
 ## Critical files
-- `templates/md-template.typ` — original template (ported to `themes/default.ts`)
-- `example.md` — acceptance test document (tested in `pipeline.test.ts`)
-- `cmd/converter.sh` — CLI pipeline reference
-- `cmd/filters/auto-table-widths.lua` — confirms auto-width behavior our `#table()` approach solves
+- `templates/md-template.typ`: original template (ported to `themes/default.ts`)
+- `example.md`: acceptance test document (tested in `pipeline.test.ts`)
+- `cmd/converter.sh`: CLI pipeline reference
+- `cmd/filters/auto-table-widths.lua`: confirms auto-width behavior our `#table()` approach solves

@@ -5,7 +5,7 @@
  * typed TypeScript object, and serializes it as a safe Typst
  * `#show: doc => conf(...)` invocation.
  *
- * No raw YAML strings are interpolated into Typst — everything goes
+ * No raw YAML strings are interpolated into Typst: everything goes
  * through a strict value encoder.
  */
 
@@ -36,7 +36,7 @@ export function extractFrontmatter(tree: Node): Metadata {
           return normalizeMetadata(raw as Record<string, unknown>);
         }
       } catch {
-        // Invalid YAML — treat as no metadata
+        // Invalid YAML - treat as no metadata
       }
     }
   }

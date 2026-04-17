@@ -82,9 +82,9 @@ console.log(`  heap before: ${(heapBefore / 1024 / 1024).toFixed(1)}MB  after: $
 // ── Phase breakdown ─────────────────────────────────────────────────
 //
 // Measures each phase independently on its own input:
-//   parse        — processor.parse(md)             → MDAST tree
-//   each plugin  — run one plugin on a cloned tree → mutated tree
-//   serializer   — mdastToTypst(tree)              → string
+//   parse        - processor.parse(md)             -> MDAST tree
+//   each plugin  - run one plugin on a cloned tree -> mutated tree
+//   serializer   - mdastToTypst(tree)              -> string
 //
 // Plugins are measured by running each one alone via a dedicated
 // processor, on a fresh clone of the parsed tree every iteration.

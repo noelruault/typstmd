@@ -3,19 +3,118 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>typstmd — Markdown to PDF</title>
+  <title>typstmd - Markdown to PDF</title>
   <style>
+    /* --- CSS Custom Properties --- */
+    :root {
+      --bg-body: #fff;
+      --bg-toolbar: #f5f5f5;
+      --bg-editor: #fff;
+      --bg-preview: #f9f9f9;
+      --bg-status: #fafafa;
+      --bg-status-error: #fef2f2;
+      --bg-btn-secondary: none;
+      --bg-btn-secondary-hover: #eee;
+      --bg-select: white;
+      --bg-source: #fafaf5;
+      --bg-template: #fdf6e3;
+      --bg-badge: #fefce8;
+      --bg-drop-overlay: rgba(37, 99, 235, 0.08);
+      --bg-reset-hover: #fef2f2;
+      --bg-view-active: #e0e7ff;
+      --bg-template-active: #fef9c3;
+      --bg-btn-primary: #2563eb;
+      --bg-btn-primary-disabled: #93c5fd;
+
+      --text-primary: #000;
+      --text-secondary: #444;
+      --text-muted: #666;
+      --text-editor: #000;
+      --text-source: #555;
+      --text-template: #333;
+      --text-status-error: #dc2626;
+      --text-status-loading: #2563eb;
+      --text-badge: #854d0e;
+      --text-reset: #dc2626;
+      --text-link: #2563eb;
+      --text-view-active: #2563eb;
+      --text-template-active: #92400e;
+      --text-drop: #2563eb;
+
+      --border-main: #ddd;
+      --border-light: #eee;
+      --border-secondary: #ccc;
+      --border-reset: #f87171;
+      --border-view-active: #93b4fd;
+      --border-template-active: #fbbf24;
+      --border-drop: #2563eb;
+
+      --shadow-badge: inset 0 0 0 1px rgb(202 138 4 / 0.2);
+
+      --label-color: #444;
+    }
+
+    body.dark {
+      --bg-body: #181a1b;
+      --bg-toolbar: #23272a;
+      --bg-editor: #1e1e1e;
+      --bg-preview: #1a1a1a;
+      --bg-status: #23272a;
+      --bg-status-error: #3b1515;
+      --bg-btn-secondary: transparent;
+      --bg-btn-secondary-hover: #333;
+      --bg-select: #2a2d30;
+      --bg-source: #1a1f1a;
+      --bg-template: #2a2518;
+      --bg-badge: rgba(250, 204, 21, 0.1);
+      --bg-drop-overlay: rgba(37, 99, 235, 0.15);
+      --bg-reset-hover: #3b1515;
+      --bg-view-active: #1e2a4a;
+      --bg-template-active: #3b3010;
+      --bg-btn-primary: #3b82f6;
+      --bg-btn-primary-disabled: #1e3a5f;
+
+      --text-primary: #d4d4d4;
+      --text-secondary: #aaa;
+      --text-muted: #888;
+      --text-editor: #d4d4d4;
+      --text-source: #a0a090;
+      --text-template: #c8b880;
+      --text-status-error: #f87171;
+      --text-status-loading: #60a5fa;
+      --text-badge: #eab308;
+      --text-reset: #f87171;
+      --text-link: #60a5fa;
+      --text-view-active: #60a5fa;
+      --text-template-active: #fbbf24;
+      --text-drop: #60a5fa;
+
+      --border-main: #333;
+      --border-light: #2a2a2a;
+      --border-secondary: #444;
+      --border-reset: #b91c1c;
+      --border-view-active: #3b82f6;
+      --border-template-active: #d97706;
+      --border-drop: #3b82f6;
+
+      --shadow-badge: inset 0 0 0 1px rgb(250 204 21 / 0.2);
+
+      --label-color: #aaa;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: system-ui, -apple-system, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
+      background: var(--bg-body);
+      color: var(--text-primary);
     }
     #toolbar {
       padding: 8px 16px;
-      background: #f5f5f5;
-      border-bottom: 1px solid #ddd;
+      background: var(--bg-toolbar);
+      border-bottom: 1px solid var(--border-main);
       display: flex;
       align-items: center;
       gap: 12px;
@@ -23,10 +122,11 @@
     #toolbar h1 {
       font-size: 16px;
       font-weight: 600;
+      color: var(--text-primary);
     }
     .toolbar-btn {
       padding: 6px 16px;
-      background: #2563eb;
+      background: var(--bg-btn-primary);
       color: white;
       border: none;
       border-radius: 4px;
@@ -34,62 +134,62 @@
       font-size: 14px;
     }
     .toolbar-btn:disabled {
-      background: #93c5fd;
+      background: var(--bg-btn-primary-disabled);
       cursor: not-allowed;
     }
     .toolbar-secondary {
       padding: 4px 10px;
-      background: none;
-      border: 1px solid #ccc;
+      background: var(--bg-btn-secondary);
+      border: 1px solid var(--border-secondary);
       border-radius: 4px;
       cursor: pointer;
       font-size: 13px;
-      color: #444;
+      color: var(--text-secondary);
     }
-    .toolbar-secondary:hover { background: #eee; }
+    .toolbar-secondary:hover { background: var(--bg-btn-secondary-hover); }
     #view-toggle.active {
-      background: #e0e7ff;
-      border-color: #93b4fd;
-      color: #2563eb;
+      background: var(--bg-view-active);
+      border-color: var(--border-view-active);
+      color: var(--text-view-active);
     }
     #theme-select {
       padding: 4px 8px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-secondary);
       border-radius: 4px;
       font-size: 13px;
-      color: #444;
-      background: white;
+      color: var(--text-secondary);
+      background: var(--bg-select);
     }
     .toolbar-spacer { flex: 1; }
     #download-link {
       font-size: 14px;
-      color: #2563eb;
+      color: var(--text-link);
       display: none;
     }
     #editor.source-view {
-      background: #fafaf5;
-      color: #555;
+      background: var(--bg-source);
+      color: var(--text-source);
     }
     #editor.template-view {
-      background: #fdf6e3;
-      color: #333;
+      background: var(--bg-template);
+      color: var(--text-template);
     }
     #template-toggle.active {
-      background: #fef9c3;
-      border-color: #fbbf24;
-      color: #92400e;
+      background: var(--bg-template-active);
+      border-color: var(--border-template-active);
+      color: var(--text-template-active);
     }
     #reset-template {
       display: none;
       padding: 4px 10px;
       background: none;
-      border: 1px solid #f87171;
+      border: 1px solid var(--border-reset);
       border-radius: 4px;
       cursor: pointer;
       font-size: 13px;
-      color: #dc2626;
+      color: var(--text-reset);
     }
-    #reset-template:hover { background: #fef2f2; }
+    #reset-template:hover { background: var(--bg-reset-hover); }
     #reset-template.visible { display: inline; }
     #main {
       flex: 1;
@@ -99,12 +199,14 @@
     #editor {
       flex: 1;
       border: none;
-      border-right: 1px solid #ddd;
+      border-right: 1px solid var(--border-main);
       padding: 16px;
       font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
       font-size: 13px;
       resize: none;
       outline: none;
+      background: var(--bg-editor);
+      color: var(--text-editor);
     }
     #preview-container {
       flex: 1;
@@ -114,21 +216,21 @@
     #preview {
       flex: 1;
       border: none;
-      background: #f9f9f9;
+      background: var(--bg-preview);
     }
     #status {
       padding: 4px 16px;
       font-size: 12px;
-      color: #666;
-      background: #fafafa;
-      border-top: 1px solid #eee;
+      color: var(--text-muted);
+      background: var(--bg-status);
+      border-top: 1px solid var(--border-light);
     }
     #status.error {
-      color: #dc2626;
-      background: #fef2f2;
+      color: var(--text-status-error);
+      background: var(--bg-status-error);
     }
     #status.loading {
-      color: #2563eb;
+      color: var(--text-status-loading);
     }
 
     /* Unsaved badge */
@@ -136,36 +238,29 @@
       display: none;
       align-items: center;
       border-radius: 6px;
-      background-color: #fefce8;
+      background-color: var(--bg-badge);
       padding: 4px 8px;
       font-size: 0.75rem;
       line-height: 1rem;
       font-weight: 500;
-      color: #854d0e;
-      box-shadow: inset 0 0 0 1px rgb(202 138 4 / 0.2);
+      color: var(--text-badge);
+      box-shadow: var(--shadow-badge);
     }
     .badge-unsaved.visible {
       display: inline-flex;
-    }
-    @media (prefers-color-scheme: dark) {
-      .badge-unsaved {
-        background-color: rgb(250 204 21 / 0.1);
-        color: #eab308;
-        box-shadow: inset 0 0 0 1px rgb(250 204 21 / 0.2);
-      }
     }
 
     /* Drop overlay */
     #drop-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(37, 99, 235, 0.08);
-      border: 3px dashed #2563eb;
+      background: var(--bg-drop-overlay);
+      border: 3px dashed var(--border-drop);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 18px;
-      color: #2563eb;
+      color: var(--text-drop);
       font-weight: 600;
       z-index: 100;
       pointer-events: none;
@@ -176,6 +271,29 @@
       opacity: 1;
     }
 
+    /* Dark mode toggle */
+    #dark-toggle {
+      padding: 4px 8px;
+      background: none;
+      border: 1px solid var(--border-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      color: var(--text-secondary);
+    }
+    #dark-toggle:hover { background: var(--bg-btn-secondary-hover); }
+
+    /* Hard breaks label */
+    .toolbar-label {
+      font-size: 13px;
+      color: var(--label-color);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
     /* Mobile layout */
     @media (max-width: 768px) {
       #main {
@@ -183,7 +301,7 @@
       }
       #editor {
         border-right: none;
-        border-bottom: 1px solid #ddd;
+        border-bottom: 1px solid var(--border-main);
         min-height: 40vh;
         flex: none;
       }
@@ -214,11 +332,12 @@
       <option value="minimal">Minimal</option>
       <option value="academic">Academic</option>
     </select>
-    <label style="font-size:13px;color:#444;display:flex;align-items:center;gap:4px;cursor:pointer">
+    <label class="toolbar-label">
       <input type="checkbox" id="hard-breaks-toggle">
       Hard breaks
     </label>
     <div class="toolbar-spacer"></div>
+    <button id="dark-toggle" title="Toggle dark mode">🌙</button>
     <button id="template-toggle" class="toolbar-secondary" title="Edit Typst template for current theme">Template</button>
     <button id="reset-template" title="Reset template to built-in theme default">Reset</button>
     <button id="view-toggle" class="toolbar-secondary" title="Toggle Typst source view">Source</button>

@@ -263,7 +263,7 @@ describe("footnotes", () => {
 
   it("treats missing footnote ref as literal text (parser behavior)", () => {
     // remark-gfm does not create footnoteReference nodes when no
-    // definition exists — the syntax stays as literal text.
+    // definition exists, so the syntax stays as literal text.
     const result = toTypst("Text[^missing]");
     expect(result).toContain("\\[^missing\\]");
   });
@@ -363,7 +363,7 @@ describe("regression: Typst function calls use # prefix", () => {
           before.includes("[") && !before.includes("]");
         const isInsideCode = before.includes("```");
         if (!isInsideBlock && !isInsideCode) {
-          // This would be a bare identifier — it should have # prefix
+          // This would be a bare identifier - it should have # prefix
           expect(result[idx - 1]).toBe("#");
         }
       }

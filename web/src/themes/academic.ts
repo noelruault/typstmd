@@ -63,7 +63,7 @@ export const academicTheme: Theme = {
   show footnote.entry: set par(hanging-indent: 1em)
   show footnote.entry: set text(size: 9pt)
 
-  // Headings — numbered
+  // Headings: numbered
   set heading(numbering: "1.1.")
   show heading: set text(hyphenate: false)
 

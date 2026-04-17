@@ -2,17 +2,17 @@
 
 ## Goal
 
-Add a Cloudflare Worker that serves the web app and optionally provides a multi-user file storage API. Storage is a **hard on/off switch** controlled entirely at runtime — the same JS bundle deploys to GitHub Pages (storage off) or Cloudflare Worker (storage on) with zero code changes.
+Add a Cloudflare Worker that serves the web app and optionally provides a multi-user file storage API. Storage is a **hard on/off switch** controlled entirely at runtime. The same JS bundle deploys to GitHub Pages (storage off) or Cloudflare Worker (storage on) with zero code changes.
 
 ### Storage OFF (default)
 
 - Deploy anywhere static: GitHub Pages, Cloudflare Pages, Netlify, any CDN
 - No backend, no account, no config
-- **Single auto-save slot**: whatever is in the editor is silently written to one `localStorage` key on every input (debounced). Restored on next visit. No file list, no file names, no multi-file management — it's a scratchpad, not a filing cabinet.
+- **Single auto-save slot**: whatever is in the editor is silently written to one `localStorage` key on every input (debounced). Restored on next visit. No file list, no file names, no multi-file management. It's a scratchpad, not a filing cabinet.
 - An **"Unsaved" badge** appears in the toolbar while there are unsaved changes (between input and the debounced write). Disappears once saved.
 - No file panel UI in this mode. The multi-file manager is hidden entirely to avoid implying durable, named storage.
 - Fully offline-capable after first load (WASM cached)
-- This is the primary publish target — always works, always ships
+- This is the primary publish target. It always works, always ships.
 
 ### Storage ON (opt-in)
 
@@ -23,7 +23,7 @@ Add a Cloudflare Worker that serves the web app and optionally provides a multi-
 - **File panel UI unlocks**: named files, list, save/open/delete appear only when authenticated
 - User switches on by logging in; switches off by logging out (file panel disappears, returns to scratchpad mode)
 
-The switch between modes is **runtime, not build-time**. The Worker injects `window.__TYPSTMD__` into the HTML for authenticated sessions. Its absence means storage off — no flags, no env vars, no rebuild required.
+The switch between modes is **runtime, not build-time**. The Worker injects `window.__TYPSTMD__` into the HTML for authenticated sessions. Its absence means storage off: no flags, no env vars, no rebuild required.
 
 ## Deployment matrix
 
@@ -34,7 +34,7 @@ The switch between modes is **runtime, not build-time**. The Worker injects `win
 | Cloudflare Worker (unauthenticated) | localStorage only | No | No | Yes |
 | Cloudflare Worker (authenticated) | R2 + KV (encrypted) | Yes | Yes | Yes |
 
-The app is never broken. Storage OFF is not a degraded mode — it is the base product.
+The app is never broken. Storage OFF is not a degraded mode; it is the base product.
 
 ## What the Worker is NOT
 
@@ -46,8 +46,8 @@ The Cloudflare Worker does **not** run the Typst WASM compiler. The 21MB WASM bi
 Browser
   ├── remark pipeline (unchanged)
   ├── WASM Typst compiler (unchanged, browser-only)
-  ├── StorageProvider (NEW — localStorage or Cloudflare)
-  └── File panel UI (NEW — list, save, open, delete)
+  ├── StorageProvider (NEW: localStorage or Cloudflare)
+  └── File panel UI (NEW: list, save, open, delete)
          │
          │ fetch /api/* (only when window.__TYPSTMD__ present)
          ▼
@@ -56,13 +56,13 @@ Cloudflare Worker  ← optional, storage OFF works without this entirely
   ├── POST /api/auth/register|login  →  JWT
   └── /api/files/*  (JWT-protected)
            │
-           ├── Cloudflare R2  — encrypted file content
-           └── Cloudflare KV  — user records + file index
+           ├── Cloudflare R2  (encrypted file content)
+           └── Cloudflare KV  (user records + file index)
 ```
 
 ## Storage abstraction
 
-### Storage OFF — single auto-save slot (no abstraction needed)
+### Storage OFF: single auto-save slot (no abstraction needed)
 
 No `StorageProvider` interface in this phase. Just one `localStorage` key:
 
@@ -84,9 +84,9 @@ function scheduleSave() {
 }
 ```
 
-The "Unsaved" badge reflects the gap between the user's last keystroke and the debounced write. It is not a manual save — the user never has to click Save. The badge just communicates that the in-memory state is slightly ahead of what's on disk.
+The "Unsaved" badge reflects the gap between the user's last keystroke and the debounced write. It is not a manual save; the user never has to click Save. The badge just communicates that the in-memory state is slightly ahead of what's on disk.
 
-### Storage ON — StorageProvider abstraction (introduced with cloud backend)
+### Storage ON: StorageProvider abstraction (introduced with cloud backend)
 
 The `StorageProvider` interface is only introduced in Phase 3, when there are actually two implementations to abstract over. Premature abstraction here adds complexity with no benefit.
 
@@ -117,7 +117,7 @@ export function createStorageProvider(): StorageProvider {
 }
 ```
 
-`window.__TYPSTMD__` is injected by the Worker into the HTML for authenticated sessions. Its absence means no cloud backend — the file panel stays hidden and the single auto-save slot remains active.
+`window.__TYPSTMD__` is injected by the Worker into the HTML for authenticated sessions. Its absence means no cloud backend: the file panel stays hidden and the single auto-save slot remains active.
 
 ### CloudflareStorageProvider (Phase 3+)
 
@@ -188,8 +188,8 @@ DELETE /api/files/:id       → files.delete()
 ```
 
 Static assets can be served two ways (decide at deploy time):
-- **Wrangler Assets binding** (`[assets] directory = "../web/dist"`) — simplest, Worker serves the dist folder directly. Requires `bun run build` in `web/` before `wrangler deploy`.
-- **R2 assets bucket** — upload dist files to a separate R2 bucket, Worker fetches and proxies. More control, allows independent asset updates.
+- **Wrangler Assets binding** (`[assets] directory = "../web/dist"`): simplest option, where the Worker serves the dist folder directly. Requires `bun run build` in `web/` before `wrangler deploy`.
+- **R2 assets bucket**: upload dist files to a separate R2 bucket, Worker fetches and proxies. More control, allows independent asset updates.
 
 Start with Wrangler Assets binding (simpler). R2 assets are a future optimization.
 
@@ -223,7 +223,7 @@ No refresh token for now. Token expiry prompts re-login. Future: add refresh end
 
 ### File ownership
 
-All file API routes extract `userId` from the verified JWT. No cross-user access is possible through the API — file IDs are `{userId}/{fileId}` in R2, and the KV index is keyed per user.
+All file API routes extract `userId` from the verified JWT. No cross-user access is possible through the API because file IDs are `{userId}/{fileId}` in R2, and the KV index is keyed per user.
 
 ## File storage layout
 
@@ -242,7 +242,7 @@ Object metadata (R2 custom metadata):
 
 ```
 user:{email}               →  { userId, passwordHash, salt }
-files:{userId}             →  JSON FileEntry[]  (name, size, updatedAt — no content)
+files:{userId}             →  JSON FileEntry[]  (name, size, updatedAt, no content)
 ```
 
 The KV index is updated on every write/delete. It stores only metadata so `listFiles()` is a single KV read, not an R2 list call (which is slower and has eventual-consistency quirks).
@@ -311,7 +311,7 @@ function injectConfig(html: string, userId: string | null, apiUrl: string): stri
 
 When `userId` is null (unauthenticated), no config is injected. `createStorageProvider()` falls back to `LocalStorageProvider`. The app works without login.
 
-The Worker reads `userId` from the JWT in the `Authorization` header or a `__session` cookie (cookie approach is simpler for browser navigation). When no valid token is present, the Worker still serves the page — just without the config injection.
+The Worker reads `userId` from the JWT in the `Authorization` header or a `__session` cookie (cookie approach is simpler for browser navigation). When no valid token is present, the Worker still serves the page, just without the config injection.
 
 ## UI: unsaved badge (Storage OFF)
 
@@ -340,7 +340,7 @@ A badge in the toolbar signals that the editor content is ahead of the auto-save
 }
 ```
 
-The badge is hidden by default (`display: none`) and shown only while `isDirty`. It disappears the moment the debounced auto-save fires. The user never has to click anything — this is purely informational.
+The badge is hidden by default (`display: none`) and shown only while `isDirty`. It disappears the moment the debounced auto-save fires. The user never has to click anything; this is purely informational.
 
 ## UI: file panel (Storage ON only)
 
@@ -368,7 +368,7 @@ Auth flow:
 
 ## Phased implementation
 
-### Phase 1 — Auto-save + unsaved badge (no backend)
+### Phase 1: Auto-save + unsaved badge (no backend)
 
 No new files. Changes only in `index.html` and `main.ts`.
 
@@ -380,7 +380,7 @@ No new files. Changes only in `index.html` and `main.ts`.
 6. Also save on drag-and-drop file load (after `reader.onload`)
 7. **Gate:** type something → badge appears; 1s idle → badge disappears; reload → content restored
 
-### Phase 2 — Cloudflare Worker skeleton + static serving
+### Phase 2: Cloudflare Worker skeleton + static serving
 
 `cf-worker/` directory, wrangler setup, static serving only. No file API yet.
 
@@ -390,7 +390,7 @@ No new files. Changes only in `index.html` and `main.ts`.
 4. Add a `Makefile` target: `make deploy` runs both steps
 5. **Gate:** `wrangler dev` serves the working web app with COOP/COEP headers; WASM loads and compiles a PDF
 
-### Phase 3 — Auth + StorageProvider + file API
+### Phase 3: Auth + StorageProvider + file API
 
 KV + R2 + frontend abstraction layer introduced together. No point building half an abstraction.
 
@@ -403,7 +403,7 @@ KV + R2 + frontend abstraction layer introduced together. No point building half
 7. Add login/register modal + file panel to `main.ts`, mounted only when `window.__TYPSTMD__` present
 8. **Gate:** register → login → JWT injected → file panel appears → save file → reload → file present → R2 object is ciphertext
 
-### Phase 4 — Polish + deployment
+### Phase 4: Polish + deployment
 
 1. Error handling: 401 re-login prompt, network errors, offline indicator
 2. File rename support; conflict warning on overwrite
@@ -454,10 +454,10 @@ Note: no `local.ts` multi-file provider. Storage OFF uses a single key directly 
 
 **cf-worker:**
 - `wrangler` CLI (dev dependency, `npm i -g wrangler`)
-- No npm runtime dependencies — uses Workers built-ins only (Web Crypto, R2, KV)
+- No npm runtime dependencies; uses Workers built-ins only (Web Crypto, R2, KV)
 
 **web:**
-- No new npm packages — `crypto.subtle` is a browser built-in
+- No new npm packages; `crypto.subtle` is a browser built-in
 
 ## Not in scope
 

@@ -182,7 +182,7 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
       case "inlineCode": {
         const c = node as MdastInlineCode;
-        // Use raw backtick passthrough — no escaping inside code
+        // Use raw backtick passthrough: no escaping inside code
         return `\`${c.value}\``;
       }
 

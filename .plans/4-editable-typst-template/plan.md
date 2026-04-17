@@ -2,16 +2,16 @@
 
 ## Context
 
-User wants to edit the Typst template (styling, layout, `conf()` function) live in the browser, save custom templates per theme to localStorage, and load them back. The body (content) stays generated from markdown — clean separation: user owns presentation, markdown owns content.
+User wants to edit the Typst template (styling, layout, `conf()` function) live in the browser, save custom templates per theme to localStorage, and load them back. The body (content) stays generated from markdown. Clean separation: user owns presentation, markdown owns content.
 
 ## Files to modify
 
-1. `web/src/template-storage.ts` — **new file**, localStorage helpers for custom templates
-2. `web/src/pipeline.ts` — accept `templateOverride` option
-3. `web/index.html` — add Template + Reset buttons, CSS
-4. `web/src/main.ts` — wire template editing mode
+1. `web/src/template-storage.ts`: **new file**, localStorage helpers for custom templates
+2. `web/src/pipeline.ts`: accept `templateOverride` option
+3. `web/index.html`: add Template + Reset buttons, CSS
+4. `web/src/main.ts`: wire template editing mode
 
-## Step 1: `web/src/template-storage.ts` — new module
+## Step 1: `web/src/template-storage.ts` (new module)
 
 Keeps browser storage concerns out of `themes/index.ts` (which stays a pure registry).
 
@@ -35,9 +35,9 @@ export function hasCustomTemplate(themeId: string): boolean {
 }
 ```
 
-`resolveTemplate` stays in `main.ts` or inline — it needs `getTheme` + `getCustomTemplate`, simple enough to inline where used.
+`resolveTemplate` stays in `main.ts` or inline. It needs `getTheme` + `getCustomTemplate`, simple enough to inline where used.
 
-## Step 2: `pipeline.ts` — templateOverride option
+## Step 2: `pipeline.ts` - templateOverride option
 
 Add `templateOverride?: string` to `PipelineOptions`. Use it in assembly:
 
@@ -46,15 +46,15 @@ const templateSource = options?.templateOverride ?? theme.template;
 const typstSource = [templateSource, confInvocation, body].join("\n\n");
 ```
 
-Pipeline stays pure — no localStorage knowledge, just takes a string.
+Pipeline stays pure: no localStorage knowledge, just takes a string.
 
-## Step 3: `index.html` — UI additions
+## Step 3: `index.html` - UI additions
 
 - Add `Template` button (`toolbar-secondary`) between spacer and Source button
 - Add `Reset` button (hidden by default, shown in template mode when custom template exists)
 - CSS: `#editor.template-view` with warm background (`#fdf6e3`), `#template-toggle.active` styling
 
-## Step 4: `main.ts` — template editing mode
+## Step 4: `main.ts` - template editing mode
 
 ### Single viewMode enum (replaces two booleans)
 
@@ -78,7 +78,7 @@ function setViewMode(mode: ViewMode) {
   // Enter new mode
   if (mode === "template") enterTemplateMode();
   else if (mode === "source") enterSourceMode();
-  // "editor" is the default — nothing special to enter
+  // "editor" is the default, nothing special to enter
 
   viewMode = mode;
 }
@@ -95,7 +95,7 @@ function setViewMode(mode: ViewMode) {
 - Restore markdown to textarea
 - Remove `template-view` CSS class
 - Re-enable source toggle button
-- **Do NOT auto-save here** — persistence is handled separately (see below)
+- **Do NOT auto-save here.** Persistence is handled separately (see below).
 
 ### Persistence: save only on successful compile
 
@@ -129,7 +129,7 @@ if (viewMode === "template") {
 ```ts
 editor.addEventListener("input", () => {
   if (viewMode === "template") {
-    // Debounced compile with live template (longer debounce — template edits are heavier)
+    // Debounced compile with live template (longer debounce since template edits are heavier)
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(doCompile, 800);
     return;
@@ -151,7 +151,7 @@ let previousThemeId = themeSelect.value;  // initialized on load
 
 themeSelect.addEventListener("change", () => {
   if (viewMode === "template") {
-    // Save current textarea for old theme (only if it compiled successfully — tracked by flag)
+    // Save current textarea for old theme (only if it compiled successfully, tracked by flag)
     // Load template for new theme
     editor.value = getCustomTemplate(themeSelect.value) ?? getTheme(themeSelect.value).template;
   }
@@ -165,7 +165,7 @@ themeSelect.addEventListener("change", () => {
 - **Template → Source**: `setViewMode("source")` exits template first, enters source
 - **Source → Template**: `setViewMode("template")` exits source first, enters template
 - **Any → Editor**: `setViewMode("editor")` exits current mode
-- All transitions go through `setViewMode()` — no impossible states
+- All transitions go through `setViewMode()`, so there are no impossible states
 
 ### Reset button
 

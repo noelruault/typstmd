@@ -27,7 +27,7 @@ console.log(greeting);
 
 ---
 
-_Phase 2 — markdown pipeline works._
+_Phase 2 - markdown pipeline works._
 `;
 
 const AUTOSAVE_KEY = "typstmd:autosave";
@@ -66,6 +66,7 @@ const hardBreaksToggle = document.getElementById(
   "hard-breaks-toggle",
 ) as HTMLInputElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
+const darkToggle = document.getElementById("dark-toggle") as HTMLButtonElement;
 
 // Store markdown separately so we can restore it when leaving source/template view.
 // Prefer the auto-saved content from a previous session over the default.
@@ -165,7 +166,7 @@ async function doCompile() {
     // Typst source → PDF bytes
     const pdfBytes = await compiler.compile(typstSource);
 
-    // Stale job — discard
+    // Stale job - discard
     if (jobId !== latestJobId) return;
 
     // Persist template only on successful compile
@@ -194,7 +195,7 @@ async function doCompile() {
         : "";
     setStatus(`Compiled (${sizeKb} KB)${warningMsg}`);
   } catch (err) {
-    // Stale job — discard
+    // Stale job - discard
     if (jobId !== latestJobId) return;
 
     // Keep last successful PDF visible (never blank the preview)
@@ -307,6 +308,27 @@ themeSelect.addEventListener("change", () => {
 });
 
 hardBreaksToggle.addEventListener("change", doCompile);
+
+// Dark mode toggle: persisted in localStorage
+const DARK_KEY = "typstmd:dark";
+
+function applyDarkMode(dark: boolean) {
+  document.body.classList.toggle("dark", dark);
+  darkToggle.textContent = dark ? "☀️" : "🌙";
+  localStorage.setItem(DARK_KEY, dark ? "1" : "0");
+}
+
+darkToggle.addEventListener("click", () => {
+  applyDarkMode(!document.body.classList.contains("dark"));
+});
+
+// Initialize dark mode from saved preference or OS preference
+const savedDark = localStorage.getItem(DARK_KEY);
+if (savedDark !== null) {
+  applyDarkMode(savedDark === "1");
+} else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  applyDarkMode(true);
+}
 
 // Drag-and-drop .md files
 const dropOverlay = document.getElementById("drop-overlay") as HTMLDivElement;

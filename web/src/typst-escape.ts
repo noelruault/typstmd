@@ -1,7 +1,7 @@
 /**
  * Context-aware escaping for Typst markup.
  *
- * Typst has context-sensitive syntax — different characters are significant
+ * Typst has context-sensitive syntax: different characters are significant
  * in different contexts. This module exports one function per context.
  */
 

@@ -22,11 +22,11 @@ Output goes to `./output/`. There are no tests, linters, or build steps.
 
 The pipeline is linear and self-contained:
 
-1. `cmd/converter.sh` — entry point. Validates dependencies, parses `--mermaid` flag, invokes Pandoc.
+1. `cmd/converter.sh`: entry point. Validates dependencies, parses `--mermaid` flag, invokes Pandoc.
 2. Pandoc receives the markdown and applies:
-   - `cmd/filters/auto-table-widths.lua` — Lua filter that resets Pandoc's guessed column widths to `ColWidthDefault`, letting Typst auto-size tables.
+   - `cmd/filters/auto-table-widths.lua`: Lua filter that resets Pandoc's guessed column widths to `ColWidthDefault`, letting Typst auto-size tables.
    - Optional: `mermaid-filter` (external npm package) renders Mermaid code blocks to PNG.
-   - `templates/md-template.typ` — Typst template controlling all PDF styling (A4, Libertinus Serif 12pt, headers/footers, code/quote/table formatting). This is a Pandoc template with `$variable$` interpolation, not a pure Typst file.
+   - `templates/md-template.typ`: Typst template controlling all PDF styling (A4, Libertinus Serif 12pt, headers/footers, code/quote/table formatting). This is a Pandoc template with `$variable$` interpolation, not a pure Typst file.
 3. Typst (as Pandoc's `--pdf-engine`) compiles the Typst output to PDF.
 
 Markdown files use YAML front matter (`title`, `author`, `date`) which the template interpolates into the title block.
