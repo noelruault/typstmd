@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import remarkEmoji from "remark-emoji";
 import remarkSubSuper from "./remark-sub-super";
 import remarkHighlight from "./remark-highlight";
+import remarkHardBreaks from "./remark-hard-breaks";
 import { mdastToTypst } from "./mdast-to-typst";
 import { extractFrontmatter, encodeConfInvocation } from "./frontmatter";
 import { getTheme, type Theme } from "./themes/index";
@@ -23,6 +24,8 @@ export interface PipelineResult {
 
 export interface PipelineOptions {
   themeId?: string;
+  hardBreaks?: boolean;
+  templateOverride?: string;
 }
 
 export function markdownToTypst(
@@ -38,6 +41,10 @@ export function markdownToTypst(
     .use(remarkSubSuper)
     .use(remarkHighlight);
 
+  if (options?.hardBreaks) {
+    processor.use(remarkHardBreaks);
+  }
+
   const tree = processor.runSync(processor.parse(markdown));
 
   // Extract frontmatter
@@ -51,7 +58,8 @@ export function markdownToTypst(
   const theme = getTheme(options?.themeId ?? "default");
   const confInvocation = encodeConfInvocation(metadata);
 
-  const typstSource = [theme.template, confInvocation, body].join("\n\n");
+  const templateSource = options?.templateOverride ?? theme.template;
+  const typstSource = [templateSource, confInvocation, body].join("\n\n");
 
   return {
     typstSource,

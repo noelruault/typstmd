@@ -70,6 +70,27 @@
       background: #fafaf5;
       color: #555;
     }
+    #editor.template-view {
+      background: #fdf6e3;
+      color: #333;
+    }
+    #template-toggle.active {
+      background: #fef9c3;
+      border-color: #fbbf24;
+      color: #92400e;
+    }
+    #reset-template {
+      display: none;
+      padding: 4px 10px;
+      background: none;
+      border: 1px solid #f87171;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #dc2626;
+    }
+    #reset-template:hover { background: #fef2f2; }
+    #reset-template.visible { display: inline; }
     #main {
       flex: 1;
       display: flex;
@@ -108,6 +129,30 @@
     }
     #status.loading {
       color: #2563eb;
+    }
+
+    /* Unsaved badge */
+    .badge-unsaved {
+      display: none;
+      align-items: center;
+      border-radius: 6px;
+      background-color: #fefce8;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      line-height: 1rem;
+      font-weight: 500;
+      color: #854d0e;
+      box-shadow: inset 0 0 0 1px rgb(202 138 4 / 0.2);
+    }
+    .badge-unsaved.visible {
+      display: inline-flex;
+    }
+    @media (prefers-color-scheme: dark) {
+      .badge-unsaved {
+        background-color: rgb(250 204 21 / 0.1);
+        color: #eab308;
+        box-shadow: inset 0 0 0 1px rgb(250 204 21 / 0.2);
+      }
     }
 
     /* Drop overlay */
@@ -162,13 +207,20 @@
 <body>
   <div id="toolbar">
     <h1>typstmd</h1>
+    <span id="unsaved-badge" class="badge-unsaved">Unsaved</span>
     <button id="convert-btn" class="toolbar-btn" disabled>Convert</button>
     <select id="theme-select" title="PDF theme">
       <option value="default">Default</option>
       <option value="minimal">Minimal</option>
       <option value="academic">Academic</option>
     </select>
+    <label style="font-size:13px;color:#444;display:flex;align-items:center;gap:4px;cursor:pointer">
+      <input type="checkbox" id="hard-breaks-toggle">
+      Hard breaks
+    </label>
     <div class="toolbar-spacer"></div>
+    <button id="template-toggle" class="toolbar-secondary" title="Edit Typst template for current theme">Template</button>
+    <button id="reset-template" title="Reset template to built-in theme default">Reset</button>
     <button id="view-toggle" class="toolbar-secondary" title="Toggle Typst source view">Source</button>
     <a id="download-link" href="#" download="output.pdf">Download PDF</a>
   </div>

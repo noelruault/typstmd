@@ -1,5 +1,12 @@
 import { createCompiler, type TypstCompiler } from "./typst-compiler";
 import { markdownToTypst } from "./pipeline";
+import { getTheme } from "./themes/index";
+import {
+  getCustomTemplate,
+  setCustomTemplate,
+  clearCustomTemplate,
+  hasCustomTemplate,
+} from "./template-storage";
 
 const DEFAULT_MARKDOWN = `# Hello from typstmd
 
@@ -23,17 +30,30 @@ console.log(greeting);
 _Phase 2 — markdown pipeline works._
 `;
 
+const AUTOSAVE_KEY = "typstmd:autosave";
+
+type ViewMode = "editor" | "source" | "template";
+
 let compiler: TypstCompiler;
 let currentPdfUrl: string | null = null;
 let latestJobId = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let lastTypstSource = "";
-let sourceViewActive = false;
+let viewMode: ViewMode = "editor";
+let previousThemeId = "default";
 
+const unsavedBadge = document.getElementById("unsaved-badge") as HTMLSpanElement;
 const editor = document.getElementById("editor") as HTMLTextAreaElement;
 const convertBtn = document.getElementById("convert-btn") as HTMLButtonElement;
 const viewToggle = document.getElementById(
   "view-toggle",
+) as HTMLButtonElement;
+const templateToggle = document.getElementById(
+  "template-toggle",
+) as HTMLButtonElement;
+const resetTemplateBtn = document.getElementById(
+  "reset-template",
 ) as HTMLButtonElement;
 const themeSelect = document.getElementById(
   "theme-select",
@@ -42,21 +62,80 @@ const downloadLink = document.getElementById(
   "download-link",
 ) as HTMLAnchorElement;
 const preview = document.getElementById("preview") as HTMLIFrameElement;
+const hardBreaksToggle = document.getElementById(
+  "hard-breaks-toggle",
+) as HTMLInputElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
 
-// Store markdown separately so we can restore it when leaving source view
-let currentMarkdown = DEFAULT_MARKDOWN.trim();
+// Store markdown separately so we can restore it when leaving source/template view.
+// Prefer the auto-saved content from a previous session over the default.
+const savedMarkdown = localStorage.getItem(AUTOSAVE_KEY);
+let currentMarkdown = savedMarkdown ?? DEFAULT_MARKDOWN.trim();
+
+function resolveTemplate(themeId: string): string {
+  return getCustomTemplate(themeId) ?? getTheme(themeId).template;
+}
+
+function setDirty() {
+  unsavedBadge.classList.add("visible");
+}
+
+function clearDirty() {
+  unsavedBadge.classList.remove("visible");
+}
+
+function scheduleSave() {
+  setDirty();
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    localStorage.setItem(AUTOSAVE_KEY, editor.value);
+    clearDirty();
+  }, 1000);
+}
 
 function setStatus(msg: string, kind: "info" | "error" | "loading" = "info") {
   statusEl.textContent = msg;
   statusEl.className = kind === "info" ? "" : kind;
 }
 
+// Centralized UI update for template-related buttons.
+// Called on every mode transition, theme change, reset, and successful save.
+function updateTemplateUi() {
+  // Template toggle button
+  if (viewMode === "template") {
+    templateToggle.classList.add("active");
+    templateToggle.textContent = "Editor";
+  } else {
+    templateToggle.classList.remove("active");
+    templateToggle.textContent = "Template";
+  }
+
+  // Source toggle button
+  if (viewMode === "source") {
+    viewToggle.classList.add("active");
+    viewToggle.textContent = "Editor";
+  } else {
+    viewToggle.classList.remove("active");
+    viewToggle.textContent = "Source";
+  }
+
+  // Disable source toggle in template mode, disable template toggle in source mode
+  viewToggle.disabled = viewMode === "template";
+  templateToggle.disabled = viewMode === "source";
+
+  // Reset button: visible only in template mode when a custom template exists
+  if (viewMode === "template" && hasCustomTemplate(themeSelect.value)) {
+    resetTemplateBtn.classList.add("visible");
+  } else {
+    resetTemplateBtn.classList.remove("visible");
+  }
+}
+
 async function doCompile() {
   const jobId = ++latestJobId;
 
-  // In editor mode, read from textarea; in source view, use stored markdown
-  if (!sourceViewActive) {
+  // Only update currentMarkdown from textarea when in editor mode
+  if (viewMode === "editor") {
     currentMarkdown = editor.value;
   }
 
@@ -64,14 +143,22 @@ async function doCompile() {
   setStatus("Compiling...", "loading");
 
   try {
+    // Resolve template: live textarea in template mode, saved/built-in otherwise
+    const templateOverride =
+      viewMode === "template"
+        ? editor.value
+        : resolveTemplate(themeSelect.value);
+
     // Markdown → Typst source
     const { typstSource, warnings } = markdownToTypst(currentMarkdown, {
       themeId: themeSelect.value,
+      hardBreaks: hardBreaksToggle.checked,
+      templateOverride,
     });
     lastTypstSource = typstSource;
 
     // If source view is active, update the display
-    if (sourceViewActive) {
+    if (viewMode === "source") {
       editor.value = typstSource;
     }
 
@@ -80,6 +167,12 @@ async function doCompile() {
 
     // Stale job — discard
     if (jobId !== latestJobId) return;
+
+    // Persist template only on successful compile
+    if (viewMode === "template") {
+      setCustomTemplate(themeSelect.value, editor.value);
+      updateTemplateUi(); // refresh reset button visibility
+    }
 
     // Revoke old blob URL to prevent memory leak
     if (currentPdfUrl) {
@@ -121,37 +214,99 @@ async function doCompile() {
 
 // Debounced auto-compile on input (500ms idle)
 function scheduleCompile() {
-  if (sourceViewActive) return; // Don't auto-compile in source view
+  if (viewMode !== "editor") return;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(doCompile, 500);
 }
 
-// Source/Editor toggle
-function toggleSourceView() {
-  sourceViewActive = !sourceViewActive;
+// --- View mode transitions ---
 
-  if (sourceViewActive) {
-    // Switch to source view: show generated Typst
-    currentMarkdown = editor.value;
-    editor.value = lastTypstSource;
-    editor.readOnly = true;
-    editor.classList.add("source-view");
-    viewToggle.classList.add("active");
-    viewToggle.textContent = "Editor";
-  } else {
-    // Switch back to editor: restore markdown
-    editor.value = currentMarkdown;
-    editor.readOnly = false;
-    editor.classList.remove("source-view");
-    viewToggle.classList.remove("active");
-    viewToggle.textContent = "Source";
-  }
+function exitSourceMode() {
+  editor.value = currentMarkdown;
+  editor.readOnly = false;
+  editor.classList.remove("source-view");
 }
 
+function enterSourceMode() {
+  currentMarkdown = editor.value;
+  editor.value = lastTypstSource;
+  editor.readOnly = true;
+  editor.classList.add("source-view");
+}
+
+function exitTemplateMode() {
+  editor.value = currentMarkdown;
+  editor.readOnly = false;
+  editor.classList.remove("template-view");
+}
+
+function enterTemplateMode() {
+  if (viewMode === "editor") {
+    currentMarkdown = editor.value;
+  }
+  editor.value = resolveTemplate(themeSelect.value);
+  editor.readOnly = false;
+  editor.classList.add("template-view");
+}
+
+function setViewMode(mode: ViewMode) {
+  if (mode === viewMode) {
+    // Toggle back to editor
+    mode = "editor";
+  }
+
+  // Exit current mode
+  if (viewMode === "source") exitSourceMode();
+  if (viewMode === "template") exitTemplateMode();
+
+  // Enter new mode
+  if (mode === "source") enterSourceMode();
+  if (mode === "template") enterTemplateMode();
+
+  viewMode = mode;
+  updateTemplateUi();
+}
+
+// --- Event listeners ---
+
 convertBtn.addEventListener("click", doCompile);
-editor.addEventListener("input", scheduleCompile);
-viewToggle.addEventListener("click", toggleSourceView);
-themeSelect.addEventListener("change", doCompile);
+
+editor.addEventListener("input", () => {
+  if (viewMode === "template") {
+    // Debounced compile with live template (longer debounce for template edits)
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(doCompile, 800);
+    return;
+  }
+  if (viewMode === "editor") {
+    scheduleSave();
+    scheduleCompile();
+  }
+  // source mode: read-only, no-op
+});
+
+viewToggle.addEventListener("click", () => setViewMode("source"));
+templateToggle.addEventListener("click", () => setViewMode("template"));
+
+resetTemplateBtn.addEventListener("click", () => {
+  clearCustomTemplate(themeSelect.value);
+  editor.value = getTheme(themeSelect.value).template;
+  updateTemplateUi();
+  doCompile();
+});
+
+themeSelect.addEventListener("change", () => {
+  if (viewMode === "template") {
+    // Switching themes while editing: load template for new theme
+    // (old theme's template was already persisted on last successful compile)
+    editor.value = resolveTemplate(themeSelect.value);
+  }
+  previousThemeId = themeSelect.value;
+  updateTemplateUi();
+  doCompile();
+});
+
+hardBreaksToggle.addEventListener("change", doCompile);
 
 // Drag-and-drop .md files
 const dropOverlay = document.getElementById("drop-overlay") as HTMLDivElement;
@@ -189,9 +344,11 @@ document.addEventListener("drop", (e) => {
   const reader = new FileReader();
   reader.onload = () => {
     const text = reader.result as string;
-    if (sourceViewActive) toggleSourceView(); // switch back to editor
+    if (viewMode !== "editor") setViewMode("editor");
     currentMarkdown = text;
     editor.value = text;
+    localStorage.setItem(AUTOSAVE_KEY, text);
+    clearDirty();
     setStatus(`Loaded ${file.name}`);
     doCompile();
   };
@@ -207,7 +364,9 @@ window.addEventListener("beforeunload", () => {
 
 // Initialize
 async function init() {
-  editor.value = currentMarkdown;
+  previousThemeId = themeSelect.value;
+  editor.value = currentMarkdown; // restored from localStorage or DEFAULT_MARKDOWN
+  updateTemplateUi();
   try {
     compiler = createCompiler();
     await compiler.init();
