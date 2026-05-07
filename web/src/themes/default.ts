@@ -69,32 +69,32 @@ export const defaultTheme: Theme = {
   // Headings
   show heading: set text(hyphenate: false)
 
-  show heading.where(level: 1): it => align(left, block(above: 1.5em, below: 1.5em, width: 100%)[
+  show heading.where(level: 1): it => align(left, block(above: 1.5em, below: 1em, width: 100%)[
+    #set text(font: font, weight: "semibold", size: 22pt)
+    #block(it.body)
+  ])
+
+  show heading.where(level: 2): it => align(left, block(above: 1.3em, below: 0.8em, width: 100%)[
+    #set text(font: font, weight: "semibold", size: 17pt)
+    #block(it.body)
+  ])
+
+  show heading.where(level: 3): it => align(left, block(above: 1.2em, below: 0.6em)[
     #set text(font: font, weight: "semibold", size: 14pt)
     #block(it.body)
   ])
 
-  show heading.where(level: 2): it => align(left, block(above: 1.3em, below: 1.3em, width: 100%)[
-    #set text(font: font, weight: "semibold", size: 12pt)
-    #block(it.body)
-  ])
-
-  show heading.where(level: 3): it => align(left, block(above: 1.3em, below: 1.3em)[
-    #set text(font: font, weight: "regular", style: "italic", size: 12pt)
-    #block(it.body)
-  ])
-
-  show heading.where(level: 4): it => align(left, block(above: 1.2em, below: 0.8em)[
+  show heading.where(level: 4): it => align(left, block(above: 1em, below: 0.5em)[
     #set text(font: font, weight: "bold", size: 12pt)
     #block(it.body)
   ])
 
-  show heading.where(level: 5): it => align(left, block(above: 1em, below: 0.6em)[
-    #set text(font: font, weight: "semibold", style: "italic", size: 12pt)
+  show heading.where(level: 5): it => align(left, block(above: 1em, below: 0.5em)[
+    #set text(font: font, weight: "semibold", size: 12pt)
     #block(it.body)
   ])
 
-  show heading.where(level: 6): it => align(left, block(above: 1em, below: 0.6em)[
+  show heading.where(level: 6): it => align(left, block(above: 1em, below: 0.5em)[
     #set text(font: font, weight: "regular", style: "italic", size: 12pt)
     #block(it.body)
   ])

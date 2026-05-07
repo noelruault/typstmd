@@ -60,17 +60,17 @@ export const minimalTheme: Theme = {
   show heading: set text(hyphenate: false)
 
   show heading.where(level: 1): it => block(above: 2em, below: 1em)[
-    #set text(weight: "bold", size: 16pt)
+    #set text(weight: "bold", size: 22pt)
     #it.body
   ]
 
   show heading.where(level: 2): it => block(above: 1.5em, below: 0.8em)[
-    #set text(weight: "semibold", size: 12pt)
+    #set text(weight: "semibold", size: 16pt)
     #it.body
   ]
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
-    #set text(weight: "regular", size: 11pt, fill: luma(80))
+    #set text(weight: "semibold", size: 13pt, fill: luma(60))
     #it.body
   ]
 
@@ -80,7 +80,7 @@ export const minimalTheme: Theme = {
   ]
 
   show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
-    #set text(weight: "semibold", style: "italic", size: 11pt)
+    #set text(weight: "semibold", size: 11pt)
     #it.body
   ]
 
