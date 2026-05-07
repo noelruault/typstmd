@@ -46,6 +46,10 @@ export const minimalTheme: Theme = {
   // Code
   show raw: set block(inset: (left: 1.5em, top: 0.4em, right: 0.8em, bottom: 0.4em))
   show raw: set text(fill: luma(60), size: 9pt)
+  show raw.where(block: false): it => {
+    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    it
+  }
 
   // Footnotes
   set footnote.entry(indent: 0.5em)
@@ -67,6 +71,21 @@ export const minimalTheme: Theme = {
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
     #set text(weight: "regular", size: 11pt, fill: luma(80))
+    #it.body
+  ]
+
+  show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
+    #set text(weight: "bold", size: 11pt)
+    #it.body
+  ]
+
+  show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
+    #set text(weight: "semibold", style: "italic", size: 11pt)
+    #it.body
+  ]
+
+  show heading.where(level: 6): it => block(above: 1em, below: 0.5em)[
+    #set text(weight: "regular", style: "italic", size: 11pt, fill: luma(100))
     #it.body
   ]
 

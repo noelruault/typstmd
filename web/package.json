@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run src/dev-server.ts",
-    "build": "bun build src/main.ts --outdir dist --minify",
+    "dev": "bun run src/dev-server.ts --watch",
+    "build": "bun run build.ts",
     "test": "bun test"
   },
   "dependencies": {
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/language-data": "^6.5.2",
     "@myriaddreamin/typst-ts-web-compiler": "0.6.0",
     "@myriaddreamin/typst.ts": "0.6.0",
+    "codemirror": "^6.0.2",
     "remark-emoji": "^5.0.2",
     "remark-frontmatter": "5.0.0",
     "remark-gfm": "4.0.0",

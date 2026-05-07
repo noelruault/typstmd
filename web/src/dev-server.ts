@@ -8,6 +8,7 @@
 
 import { existsSync } from "fs";
 import { join, extname } from "path";
+import { themesPlugin } from "../plugins/themes";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, ".dev-dist");
@@ -41,6 +42,7 @@ async function bundle() {
       // re-exports both; mark the renderer as external to avoid bundling it.
       "@myriaddreamin/typst-ts-renderer",
     ],
+    plugins: [themesPlugin(join(ROOT, "src/highlight/themes"))],
   });
   if (!result.success) {
     console.error("Bundle failed:");

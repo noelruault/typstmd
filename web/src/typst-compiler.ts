@@ -47,15 +47,24 @@ export function createCompiler(): TypstCompiler {
   return {
     async init() {
       if (initialized) return;
+
+      performance.mark("wasm-fetch-start");
+      const wasmReady = fetch(WASM_URL).then((r) => {
+        performance.mark("wasm-fetch-end");
+        performance.measure("wasm-fetch", "wasm-fetch-start", "wasm-fetch-end");
+        return r;
+      });
+
+      performance.mark("compiler-init-start");
       await inner.init({
-        getModule: () => fetch(WASM_URL),
+        getModule: () => wasmReady,
         beforeBuild: [
-          // Load default text fonts from GitHub CDN.
-          // COEP: credentialless allows these cross-origin fetches.
-          // Phase 5 will bundle Libertinus Serif locally for offline use.
           preloadRemoteFonts([], { assets: ["text"] }),
         ],
       });
+      performance.mark("compiler-init-end");
+      performance.measure("compiler-init (wasm+fonts)", "compiler-init-start", "compiler-init-end");
+
       initialized = true;
     },
 

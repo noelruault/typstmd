@@ -324,6 +324,17 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
   // ── Tables ──────────────────────────────────────────────────────
 
+  function cellTextLength(node: Node): number {
+    let len = 0;
+    const v = (node as { value?: unknown }).value;
+    if (typeof v === "string") len += v.length;
+    const children = (node as Parent).children;
+    if (Array.isArray(children)) {
+      for (const c of children) len += cellTextLength(c);
+    }
+    return len;
+  }
+
   function serializeTable(table: MdastTable): string {
     if (table.children.length === 0) return "";
 
@@ -337,15 +348,26 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
     const columnCount = table.children[0]?.children?.length ?? 0;
     const cells: string[] = [];
+    const colMaxLen = new Array(columnCount).fill(0);
 
     for (const row of table.children) {
-      for (const cell of row.children) {
-        const content = serializeChildren(cell as MdastTableCell);
+      for (let i = 0; i < row.children.length; i++) {
+        const cell = row.children[i] as MdastTableCell;
+        const content = serializeChildren(cell);
         cells.push(`[${content}]`);
+        const len = cellTextLength(cell);
+        if (i < columnCount && len > colMaxLen[i]) colMaxLen[i] = len;
       }
     }
 
-    return `#table(columns: ${columnCount}, ${cells.join(", ")})`;
+    // Per-column sizing: short content → auto (shrink), long prose → 1fr
+    // (absorb remaining width). Threshold tuned for typical page width.
+    const WIDE_THRESHOLD = 40;
+    const hasWide = colMaxLen.some((l) => l >= WIDE_THRESHOLD);
+    const columnsArg = hasWide
+      ? `(${colMaxLen.map((l) => (l >= WIDE_THRESHOLD ? "1fr" : "auto")).join(", ")})`
+      : `${columnCount}`;
+    return `#table(columns: ${columnsArg}, ${cells.join(", ")})`;
   }
 
   // ── Footnotes ───────────────────────────────────────────────────

@@ -53,6 +53,13 @@ export const defaultTheme: Theme = {
   // Code
   show raw: set block(inset: (left: 2em, top: 0.5em, right: 1em, bottom: 0.5em))
   show raw: set text(fill: rgb("#116611"), size: 9pt)
+  // Allow inline code (long identifiers, paths, dotted names) to wrap inside
+  // narrow contexts like table cells by inserting zero-width breakpoints
+  // after common identifier separators.
+  show raw.where(block: false): it => {
+    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    it
+  }
 
   // Footnotes
   set footnote.entry(indent: 0.5em)
@@ -62,18 +69,33 @@ export const defaultTheme: Theme = {
   // Headings
   show heading: set text(hyphenate: false)
 
-  show heading.where(level: 1): it => align(left, block(above: 1.5em, below: 1.5em, width: 80%)[
+  show heading.where(level: 1): it => align(left, block(above: 1.5em, below: 1.5em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 14pt)
     #block(it.body)
   ])
 
-  show heading.where(level: 2): it => align(left, block(above: 1.3em, below: 1.3em, width: 80%)[
+  show heading.where(level: 2): it => align(left, block(above: 1.3em, below: 1.3em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 12pt)
     #block(it.body)
   ])
 
   show heading.where(level: 3): it => align(left, block(above: 1.3em, below: 1.3em)[
-    #set text(font: font, weight: "regular", style: "italic", size: 11pt)
+    #set text(font: font, weight: "regular", style: "italic", size: 12pt)
+    #block(it.body)
+  ])
+
+  show heading.where(level: 4): it => align(left, block(above: 1.2em, below: 0.8em)[
+    #set text(font: font, weight: "bold", size: 12pt)
+    #block(it.body)
+  ])
+
+  show heading.where(level: 5): it => align(left, block(above: 1em, below: 0.6em)[
+    #set text(font: font, weight: "semibold", style: "italic", size: 12pt)
+    #block(it.body)
+  ])
+
+  show heading.where(level: 6): it => align(left, block(above: 1em, below: 0.6em)[
+    #set text(font: font, weight: "regular", style: "italic", size: 12pt)
     #block(it.body)
   ])
 

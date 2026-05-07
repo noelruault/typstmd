@@ -57,6 +57,10 @@ export const academicTheme: Theme = {
     radius: 2pt,
   )
   show raw: set text(size: 9pt)
+  show raw.where(block: false): it => {
+    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    it
+  }
 
   // Footnotes
   set footnote.entry(indent: 0.5em)
@@ -79,6 +83,21 @@ export const academicTheme: Theme = {
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
     #set text(weight: "semibold", style: "italic", size: 11pt)
+    #it
+  ]
+
+  show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
+    #set text(weight: "bold", size: 11pt)
+    #it
+  ]
+
+  show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
+    #set text(weight: "semibold", style: "italic", size: 11pt)
+    #it
+  ]
+
+  show heading.where(level: 6): it => block(above: 1em, below: 0.5em)[
+    #set text(weight: "regular", style: "italic", size: 11pt)
     #it
   ]
 

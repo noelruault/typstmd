@@ -7,6 +7,16 @@ import {
   clearCustomTemplate,
   hasCustomTemplate,
 } from "./template-storage";
+import {
+  createEditorView,
+  getValue,
+  setValue,
+  setReadOnly,
+  setHighlightTheme,
+  setLineWrap,
+  highlightThemes,
+} from "./highlight";
+import type { EditorView } from "@codemirror/view";
 
 const DEFAULT_MARKDOWN = `# Hello from typstmd
 
@@ -35,6 +45,7 @@ const AUTOSAVE_KEY = "typstmd:autosave";
 type ViewMode = "editor" | "source" | "template";
 
 let compiler: TypstCompiler;
+let view: EditorView;
 let currentPdfUrl: string | null = null;
 let latestJobId = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -44,7 +55,7 @@ let viewMode: ViewMode = "editor";
 let previousThemeId = "default";
 
 const unsavedBadge = document.getElementById("unsaved-badge") as HTMLSpanElement;
-const editor = document.getElementById("editor") as HTMLTextAreaElement;
+const editorHost = document.getElementById("editor-host") as HTMLDivElement;
 const convertBtn = document.getElementById("convert-btn") as HTMLButtonElement;
 const viewToggle = document.getElementById(
   "view-toggle",
@@ -65,8 +76,14 @@ const preview = document.getElementById("preview") as HTMLIFrameElement;
 const hardBreaksToggle = document.getElementById(
   "hard-breaks-toggle",
 ) as HTMLInputElement;
+const wrapLinesToggle = document.getElementById(
+  "wrap-lines-toggle",
+) as HTMLInputElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
 const darkToggle = document.getElementById("dark-toggle") as HTMLButtonElement;
+const highlightSelect = document.getElementById(
+  "highlight-select",
+) as HTMLSelectElement;
 
 // Store markdown separately so we can restore it when leaving source/template view.
 // Prefer the auto-saved content from a previous session over the default.
@@ -89,9 +106,15 @@ function scheduleSave() {
   setDirty();
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    localStorage.setItem(AUTOSAVE_KEY, editor.value);
+    localStorage.setItem(AUTOSAVE_KEY, getValue(view));
     clearDirty();
   }, 1000);
+}
+
+function pdfFilenameStem(): string {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `typstmd-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
 function setStatus(msg: string, kind: "info" | "error" | "loading" = "info") {
@@ -100,9 +123,7 @@ function setStatus(msg: string, kind: "info" | "error" | "loading" = "info") {
 }
 
 // Centralized UI update for template-related buttons.
-// Called on every mode transition, theme change, reset, and successful save.
 function updateTemplateUi() {
-  // Template toggle button
   if (viewMode === "template") {
     templateToggle.classList.add("active");
     templateToggle.textContent = "Editor";
@@ -111,7 +132,6 @@ function updateTemplateUi() {
     templateToggle.textContent = "Template";
   }
 
-  // Source toggle button
   if (viewMode === "source") {
     viewToggle.classList.add("active");
     viewToggle.textContent = "Editor";
@@ -120,11 +140,9 @@ function updateTemplateUi() {
     viewToggle.textContent = "Source";
   }
 
-  // Disable source toggle in template mode, disable template toggle in source mode
   viewToggle.disabled = viewMode === "template";
   templateToggle.disabled = viewMode === "source";
 
-  // Reset button: visible only in template mode when a custom template exists
   if (viewMode === "template" && hasCustomTemplate(themeSelect.value)) {
     resetTemplateBtn.classList.add("visible");
   } else {
@@ -135,22 +153,20 @@ function updateTemplateUi() {
 async function doCompile() {
   const jobId = ++latestJobId;
 
-  // Only update currentMarkdown from textarea when in editor mode
+  // Only update currentMarkdown when in editor mode
   if (viewMode === "editor") {
-    currentMarkdown = editor.value;
+    currentMarkdown = getValue(view);
   }
 
   convertBtn.disabled = true;
   setStatus("Compiling...", "loading");
 
   try {
-    // Resolve template: live textarea in template mode, saved/built-in otherwise
     const templateOverride =
       viewMode === "template"
-        ? editor.value
+        ? getValue(view)
         : resolveTemplate(themeSelect.value);
 
-    // Markdown → Typst source
     const { typstSource, warnings } = markdownToTypst(currentMarkdown, {
       themeId: themeSelect.value,
       hardBreaks: hardBreaksToggle.checked,
@@ -158,12 +174,10 @@ async function doCompile() {
     });
     lastTypstSource = typstSource;
 
-    // If source view is active, update the display
     if (viewMode === "source") {
-      editor.value = typstSource;
+      setValue(view, typstSource);
     }
 
-    // Typst source → PDF bytes
     const pdfBytes = await compiler.compile(typstSource);
 
     // Stale job - discard
@@ -171,11 +185,10 @@ async function doCompile() {
 
     // Persist template only on successful compile
     if (viewMode === "template") {
-      setCustomTemplate(themeSelect.value, editor.value);
-      updateTemplateUi(); // refresh reset button visibility
+      setCustomTemplate(themeSelect.value, getValue(view));
+      updateTemplateUi();
     }
 
-    // Revoke old blob URL to prevent memory leak
     if (currentPdfUrl) {
       URL.revokeObjectURL(currentPdfUrl);
     }
@@ -185,6 +198,7 @@ async function doCompile() {
 
     preview.src = currentPdfUrl;
     downloadLink.href = currentPdfUrl;
+    downloadLink.download = `${pdfFilenameStem()}.pdf`;
     downloadLink.style.display = "inline";
 
     const warningCount = warnings.length;
@@ -198,7 +212,6 @@ async function doCompile() {
     // Stale job - discard
     if (jobId !== latestJobId) return;
 
-    // Keep last successful PDF visible (never blank the preview)
     const errors = compiler.getErrors();
     const msg = errors.length
       ? errors.join("; ")
@@ -213,7 +226,6 @@ async function doCompile() {
   }
 }
 
-// Debounced auto-compile on input (500ms idle)
 function scheduleCompile() {
   if (viewMode !== "editor") return;
   if (debounceTimer) clearTimeout(debounceTimer);
@@ -223,44 +235,37 @@ function scheduleCompile() {
 // --- View mode transitions ---
 
 function exitSourceMode() {
-  editor.value = currentMarkdown;
-  editor.readOnly = false;
-  editor.classList.remove("source-view");
+  setValue(view, currentMarkdown);
+  setReadOnly(view, false);
 }
 
 function enterSourceMode() {
-  currentMarkdown = editor.value;
-  editor.value = lastTypstSource;
-  editor.readOnly = true;
-  editor.classList.add("source-view");
+  currentMarkdown = getValue(view);
+  setValue(view, lastTypstSource);
+  setReadOnly(view, true);
 }
 
 function exitTemplateMode() {
-  editor.value = currentMarkdown;
-  editor.readOnly = false;
-  editor.classList.remove("template-view");
+  setValue(view, currentMarkdown);
+  setReadOnly(view, false);
 }
 
 function enterTemplateMode() {
   if (viewMode === "editor") {
-    currentMarkdown = editor.value;
+    currentMarkdown = getValue(view);
   }
-  editor.value = resolveTemplate(themeSelect.value);
-  editor.readOnly = false;
-  editor.classList.add("template-view");
+  setValue(view, resolveTemplate(themeSelect.value));
+  setReadOnly(view, false);
 }
 
 function setViewMode(mode: ViewMode) {
   if (mode === viewMode) {
-    // Toggle back to editor
     mode = "editor";
   }
 
-  // Exit current mode
   if (viewMode === "source") exitSourceMode();
   if (viewMode === "template") exitTemplateMode();
 
-  // Enter new mode
   if (mode === "source") enterSourceMode();
   if (mode === "template") enterTemplateMode();
 
@@ -268,13 +273,11 @@ function setViewMode(mode: ViewMode) {
   updateTemplateUi();
 }
 
-// --- Event listeners ---
-
-convertBtn.addEventListener("click", doCompile);
-
-editor.addEventListener("input", () => {
+// --- Input handler ---
+// The EditorView calls onDocChange on every document change.
+// We route it based on the current view mode.
+function onDocChange() {
   if (viewMode === "template") {
-    // Debounced compile with live template (longer debounce for template edits)
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(doCompile, 800);
     return;
@@ -283,24 +286,24 @@ editor.addEventListener("input", () => {
     scheduleSave();
     scheduleCompile();
   }
-  // source mode: read-only, no-op
-});
+}
 
+// --- Event listeners ---
+
+convertBtn.addEventListener("click", doCompile);
 viewToggle.addEventListener("click", () => setViewMode("source"));
 templateToggle.addEventListener("click", () => setViewMode("template"));
 
 resetTemplateBtn.addEventListener("click", () => {
   clearCustomTemplate(themeSelect.value);
-  editor.value = getTheme(themeSelect.value).template;
+  setValue(view, getTheme(themeSelect.value).template);
   updateTemplateUi();
   doCompile();
 });
 
 themeSelect.addEventListener("change", () => {
   if (viewMode === "template") {
-    // Switching themes while editing: load template for new theme
-    // (old theme's template was already persisted on last successful compile)
-    editor.value = resolveTemplate(themeSelect.value);
+    setValue(view, resolveTemplate(themeSelect.value));
   }
   previousThemeId = themeSelect.value;
   updateTemplateUi();
@@ -309,26 +312,91 @@ themeSelect.addEventListener("change", () => {
 
 hardBreaksToggle.addEventListener("change", doCompile);
 
-// Dark mode toggle: persisted in localStorage
+const WRAP_LINES_KEY = "typstmd:wrap-lines";
+wrapLinesToggle.checked = localStorage.getItem(WRAP_LINES_KEY) === "1";
+wrapLinesToggle.addEventListener("change", () => {
+  localStorage.setItem(WRAP_LINES_KEY, wrapLinesToggle.checked ? "1" : "0");
+  if (view) setLineWrap(view, wrapLinesToggle.checked);
+});
+
+// Dark mode + highlight theme, persisted in localStorage. Each UI mode
+// (dark / light) remembers its own highlight theme so toggling the sun/moon
+// flips both the chrome and the editor to a matching palette.
 const DARK_KEY = "typstmd:dark";
+const HIGHLIGHT_DARK_KEY = "typstmd:highlight-dark";
+const HIGHLIGHT_LIGHT_KEY = "typstmd:highlight-light";
+const LEGACY_HIGHLIGHT_KEY = "typstmd:highlight-theme";
+
+function isDark(): boolean {
+  return document.body.classList.contains("dark");
+}
+
+function highlightKey(dark: boolean): string {
+  return dark ? HIGHLIGHT_DARK_KEY : HIGHLIGHT_LIGHT_KEY;
+}
+
+function themesFor(dark: boolean) {
+  return highlightThemes.filter((th) => th.dark === dark);
+}
+
+function migrateLegacyHighlight() {
+  const legacy = localStorage.getItem(LEGACY_HIGHLIGHT_KEY);
+  if (!legacy) return;
+  const theme = highlightThemes.find((th) => th.id === legacy);
+  if (theme) {
+    const key = highlightKey(theme.dark);
+    if (!localStorage.getItem(key)) localStorage.setItem(key, legacy);
+  }
+  localStorage.removeItem(LEGACY_HIGHLIGHT_KEY);
+}
+
+function populateHighlightOptions(dark: boolean) {
+  highlightSelect.replaceChildren(
+    ...themesFor(dark).map((th) => {
+      const opt = document.createElement("option");
+      opt.value = th.id;
+      opt.textContent = th.name;
+      return opt;
+    }),
+  );
+}
+
+function currentHighlightThemeId(dark: boolean): string {
+  const saved = localStorage.getItem(highlightKey(dark));
+  const filtered = themesFor(dark);
+  if (saved && filtered.some((th) => th.id === saved)) return saved;
+  return filtered[0].id;
+}
 
 function applyDarkMode(dark: boolean) {
   document.body.classList.toggle("dark", dark);
   darkToggle.textContent = dark ? "☀️" : "🌙";
   localStorage.setItem(DARK_KEY, dark ? "1" : "0");
+  populateHighlightOptions(dark);
+  const themeId = currentHighlightThemeId(dark);
+  highlightSelect.value = themeId;
+  if (view) setHighlightTheme(view, themeId);
 }
 
 darkToggle.addEventListener("click", () => {
-  applyDarkMode(!document.body.classList.contains("dark"));
+  applyDarkMode(!isDark());
 });
 
-// Initialize dark mode from saved preference or OS preference
+highlightSelect.addEventListener("change", () => {
+  const themeId = highlightSelect.value;
+  localStorage.setItem(highlightKey(isDark()), themeId);
+  if (view) setHighlightTheme(view, themeId);
+});
+
+// Initialize mode first so highlight options + value reflect the right set
+// before the editor view is created.
+migrateLegacyHighlight();
 const savedDark = localStorage.getItem(DARK_KEY);
-if (savedDark !== null) {
-  applyDarkMode(savedDark === "1");
-} else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-  applyDarkMode(true);
-}
+const initialDark =
+  savedDark !== null
+    ? savedDark === "1"
+    : window.matchMedia("(prefers-color-scheme: dark)").matches;
+applyDarkMode(initialDark);
 
 // Drag-and-drop .md files
 const dropOverlay = document.getElementById("drop-overlay") as HTMLDivElement;
@@ -368,7 +436,7 @@ document.addEventListener("drop", (e) => {
     const text = reader.result as string;
     if (viewMode !== "editor") setViewMode("editor");
     currentMarkdown = text;
-    editor.value = text;
+    setValue(view, text);
     localStorage.setItem(AUTOSAVE_KEY, text);
     clearDirty();
     setStatus(`Loaded ${file.name}`);
@@ -386,15 +454,28 @@ window.addEventListener("beforeunload", () => {
 
 // Initialize
 async function init() {
+  performance.mark("init-start");
+
   previousThemeId = themeSelect.value;
-  editor.value = currentMarkdown; // restored from localStorage or DEFAULT_MARKDOWN
+  view = createEditorView(editorHost, currentMarkdown, currentHighlightThemeId(isDark()), onDocChange);
+  if (wrapLinesToggle.checked) setLineWrap(view, true);
+  performance.mark("editor-ready");
+  performance.measure("codemirror-mount", "init-start", "editor-ready");
+
   updateTemplateUi();
   try {
     compiler = createCompiler();
     await compiler.init();
+    performance.mark("compiler-ready");
+    performance.measure("compiler-total", "init-start", "compiler-ready");
+
     convertBtn.disabled = false;
-    // Auto-compile on init so source view and PDF are immediately available
-    doCompile();
+
+    performance.mark("first-compile-start");
+    await doCompile();
+    performance.mark("first-compile-end");
+    performance.measure("first-compile", "first-compile-start", "first-compile-end");
+    performance.measure("total-init", "init-start", "first-compile-end");
   } catch (err) {
     const msg = err instanceof Error ? err.message : JSON.stringify(err);
     setStatus(`Failed to initialize compiler: ${msg}`, "error");
