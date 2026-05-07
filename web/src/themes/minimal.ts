@@ -70,17 +70,17 @@ export const minimalTheme: Theme = {
   ]
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
-    #set text(weight: "semibold", size: 13pt, fill: luma(60))
+    #set text(weight: "semibold", size: 14pt, fill: luma(60))
     #it.body
   ]
 
   show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
-    #set text(weight: "bold", size: 11pt)
+    #set text(weight: "bold", size: 12pt)
     #it.body
   ]
 
   show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
-    #set text(weight: "semibold", size: 11pt)
+    #set text(weight: "bold", size: 11pt)
     #it.body
   ]
 

@@ -80,17 +80,17 @@ export const defaultTheme: Theme = {
   ])
 
   show heading.where(level: 3): it => align(left, block(above: 1.2em, below: 0.6em)[
-    #set text(font: font, weight: "semibold", size: 14pt)
+    #set text(font: font, weight: "semibold", size: 15pt)
     #block(it.body)
   ])
 
   show heading.where(level: 4): it => align(left, block(above: 1em, below: 0.5em)[
-    #set text(font: font, weight: "bold", size: 12pt)
+    #set text(font: font, weight: "bold", size: 13pt)
     #block(it.body)
   ])
 
   show heading.where(level: 5): it => align(left, block(above: 1em, below: 0.5em)[
-    #set text(font: font, weight: "semibold", size: 12pt)
+    #set text(font: font, weight: "bold", size: 12pt)
     #block(it.body)
   ])
 

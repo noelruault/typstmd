@@ -72,27 +72,27 @@ export const academicTheme: Theme = {
   show heading: set text(hyphenate: false)
 
   show heading.where(level: 1): it => block(above: 2em, below: 1em)[
-    #set text(weight: "bold", size: 17pt)
+    #set text(weight: "bold", size: 18pt)
     #it
   ]
 
   show heading.where(level: 2): it => block(above: 1.5em, below: 0.8em)[
-    #set text(weight: "bold", size: 14pt)
+    #set text(weight: "bold", size: 15pt)
     #it
   ]
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
-    #set text(weight: "semibold", style: "italic", size: 12pt)
+    #set text(weight: "semibold", style: "italic", size: 13pt)
     #it
   ]
 
   show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
-    #set text(weight: "bold", size: 11pt)
+    #set text(weight: "bold", size: 12pt)
     #it
   ]
 
   show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
-    #set text(weight: "semibold", size: 11pt)
+    #set text(weight: "bold", size: 11pt)
     #it
   ]
 

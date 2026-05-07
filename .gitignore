@@ -5,6 +5,7 @@
 output/
 tmp/
 web/.dev-dist/
+web/dist/
 
 # =============================================================================
 # AI Agents and Custom Prompts
