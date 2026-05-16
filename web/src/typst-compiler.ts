@@ -15,10 +15,13 @@ export interface TypstCompiler {
 }
 
 /**
- * URL where the WASM binary is served. The dev server maps any .wasm
- * request to the actual file inside node_modules.
+ * URL where the WASM binary is served. Relative so it works under any
+ * base path (dev server, GitHub Pages subpath, custom domain).
  */
-const WASM_URL = "/typst_ts_web_compiler_bg.wasm";
+const WASM_URL = new URL(
+  "./typst_ts_web_compiler_bg.wasm",
+  document.baseURI,
+).href;
 
 function formatDiagnostics(diagnostics: unknown): string[] {
   if (!diagnostics) return ["Unknown compilation error"];
