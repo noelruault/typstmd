@@ -127,6 +127,33 @@ export interface SerializeOptions {
   warnings: WarningCollector;
 }
 
+/** Zero-width space: an invisible line-break opportunity for Typst. */
+const ZWSP = "​";
+
+/**
+ * Insert break opportunities into long unbreakable tokens so Typst can
+ * wrap them inside a fixed-width table column (mimics CSS
+ * `overflow-wrap: break-word`). Only tokens of >= MIN_TOKEN chars are
+ * touched, so normal words are untouched. Breaks are added after
+ * structural characters first (so `bench_drain_test.go` splits at the
+ * `_`/`.`), then any remaining run with no such character is hard-broken
+ * every MAX_RUN chars (so `EnableSpotRebalance` still wraps).
+ */
+function breakLongTokens(s: string): string {
+  const MIN_TOKEN = 14;
+  const MAX_RUN = 14;
+  return s.replace(new RegExp(`\\S{${MIN_TOKEN},}`, "g"), (token) => {
+    // Prefer breaking after structural separators.
+    let out = token.replace(/([_/.\-:=&?])/g, `$1${ZWSP}`);
+    // Hard-break any remaining run with no separator.
+    out = out.replace(
+      new RegExp(`([^${ZWSP}\\s]{${MAX_RUN}})(?=[^${ZWSP}\\s])`, "g"),
+      `$1${ZWSP}`,
+    );
+    return out;
+  });
+}
+
 export function mdastToTypst(tree: Node, options: SerializeOptions): string {
   const { warnings } = options;
 
@@ -138,6 +165,15 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
   // Definition resolution (for imageReference nodes)
   const definitionDefs = new Map<string, string>();
   collectDefinitions(tree, definitionDefs);
+
+  // While true, text is rendered inside a table cell, where we mimic
+  // CSS `overflow-wrap: break-word`: Typst only breaks lines at existing
+  // opportunities (spaces), so a long unbreakable token (snake_case
+  // identifier, slash path) overflows its column and collides with the
+  // neighbour. We inject zero-width spaces (U+200B) into long tokens so
+  // Typst can wrap them to fit. ZWSP is not Typst-significant, so it
+  // survives escaping untouched and adds no visible glyph.
+  let inTableCell = false;
 
   function serializeChildren(node: Parent, sep = ""): string {
     return node.children.map((child) => serialize(child)).join(sep);
@@ -160,8 +196,10 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
       case "root":
         return serializeChildren(node as Parent, "\n\n");
 
-      case "text":
-        return escapeText((node as MdastText).value);
+      case "text": {
+        const value = (node as MdastText).value;
+        return escapeText(inTableCell ? breakLongTokens(value) : value);
+      }
 
       case "heading": {
         const h = node as MdastHeading;
@@ -353,19 +391,26 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
     for (const row of table.children) {
       for (let i = 0; i < row.children.length; i++) {
         const cell = row.children[i] as MdastTableCell;
+        inTableCell = true;
         const content = serializeChildren(cell);
+        inTableCell = false;
         cells.push(`[${content}]`);
         const len = cellTextLength(cell);
         if (i < columnCount && len > colMaxLen[i]) colMaxLen[i] = len;
       }
     }
 
-    // Per-column sizing: short content → auto (shrink), long prose → 1fr
-    // (absorb remaining width). Threshold tuned for typical page width.
+    // Per-column sizing: when any column is wide, every column that can
+    // hold prose becomes 1fr so they share the page width and wrap
+    // together. A single 1fr column would get starved to ~0 width by the
+    // remaining auto columns' long unbreakable tokens and overflow into
+    // its neighbour. Only genuinely short columns (labels, hashes) stay
+    // auto so they don't waste flex width.
     const WIDE_THRESHOLD = 40;
+    const NARROW_THRESHOLD = 12;
     const hasWide = colMaxLen.some((l) => l >= WIDE_THRESHOLD);
     const columnsArg = hasWide
-      ? `(${colMaxLen.map((l) => (l >= WIDE_THRESHOLD ? "1fr" : "auto")).join(", ")})`
+      ? `(${colMaxLen.map((l) => (l <= NARROW_THRESHOLD ? "auto" : "1fr")).join(", ")})`
       : `${columnCount}`;
     return `#table(columns: ${columnsArg}, ${cells.join(", ")})`;
   }

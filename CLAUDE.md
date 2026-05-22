@@ -30,6 +30,27 @@ bunx tsc --noEmit    # typecheck
 
 No linters. CLI has no tests.
 
+## Visual testing (web)
+
+Unit tests assert the generated Typst *string*; they cannot catch
+layout bugs (column overlap, text overflowing a cell, table running off
+the page). Those only show up in the rendered PDF. **When changing
+anything that affects rendered layout — table sizing, cell wrapping,
+spacing, theme templates — also verify visually, don't rely on
+`bun test` alone.**
+
+Visual fixtures live in `web/test/visuals/*.md`. Each file collects
+markdown cases that target specific layout failure modes (e.g.
+`tables.md` covers column-sizing and long-token wrapping). To check a
+change:
+
+```bash
+bun run dev              # :3000, paste a fixture and eyeball the PDF
+```
+
+When you fix a layout bug, add a fixture case that reproduces it to the
+relevant file so the failure mode is documented and re-checkable.
+
 ## CLI pipeline architecture
 
 Linear, self-contained:
