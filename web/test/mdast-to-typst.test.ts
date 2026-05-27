@@ -207,6 +207,23 @@ describe("unsupported nodes", () => {
   it("renders HTML placeholder", () => {
     expect(toTypst("<div>html</div>")).toContain("\\[HTML block removed\\]");
   });
+
+  it("drops HTML comments silently", () => {
+    const out = toTypst("before\n\n<!-- BEGIN appendix -->\n\nafter");
+    expect(out).not.toContain("HTML block removed");
+    expect(out).toContain("before");
+    expect(out).toContain("after");
+  });
+
+  it("does not warn on HTML comments", () => {
+    const w = getWarnings("<!-- just a comment -->");
+    expect(w.some((w) => w.nodeType === "html")).toBe(false);
+  });
+
+  it("drops multi-line HTML comments", () => {
+    const out = toTypst("<!--\n  multi\n  line\n-->");
+    expect(out).not.toContain("HTML block removed");
+  });
 });
 
 describe("lists", () => {

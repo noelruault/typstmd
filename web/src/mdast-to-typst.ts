@@ -310,6 +310,9 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
       case "html": {
         const html = node as MdastHtml;
+        if (/^\s*<!--[\s\S]*-->\s*$/.test(html.value)) {
+          return "";
+        }
         const preview = html.value.slice(0, 40).replace(/\n/g, " ");
         warnings.warn("html", `HTML removed: ${preview}`);
         return escapeText("[HTML block removed]");

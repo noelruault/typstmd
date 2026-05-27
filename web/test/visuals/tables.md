@@ -72,3 +72,15 @@ width) columns.
 | Exactly forty chars in this cell here ok! | Short |
 |-------------------------------------------|-------|
 | data | x |
+
+| Manager | items | M3 baseline B/row | c8g.large B/row | Drift | Verdict |
+|---------|-------|-------------------|--------------------|-------|---------|
+| BookingChannel | 50 | 313.0 | -449.0 | - | n/a (items<100, below measurement floor) |
+| Chain | 5000 | 226.8 | 219.0 | -3.4% | ok |
+| City | 50000 | 525.9 | 525.0 | -0.2% | ok |
+| Country | 250 | 436.1 | 262.3 | -39.9% | improved |
+| Customer | 50000 | 310.0 | 309.0 | -0.3% | ok |
+| CustomerAllowRights | 50000 | 177.8 | 177.0 | -0.4% | ok |
+| CustomerCancellationBuffer | 5000 | 207.1 | 198.9 | -4.0% | ok |
+| CustomerCreditLine | 50000 | 189.9 | 189.0 | -0.5% | ok |
+| Hotel | 50000 | 509.9 | 509.0 | -0.2% | ok |
