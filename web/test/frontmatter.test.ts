@@ -47,6 +47,12 @@ describe("extractFrontmatter", () => {
     expect(meta.author).toBeUndefined();
     expect(meta.date).toBeUndefined();
   });
+
+  it("extracts toc boolean", () => {
+    expect(extractFrontmatter(parse("---\ntoc: true\n---\n")).toc).toBe(true);
+    expect(extractFrontmatter(parse("---\ntoc: false\n---\n")).toc).toBe(false);
+    expect(extractFrontmatter(parse("---\ntitle: X\n---\n")).toc).toBeUndefined();
+  });
 });
 
 describe("encodeConfInvocation", () => {
@@ -83,5 +89,11 @@ describe("encodeConfInvocation", () => {
   it("encodes lang as string literal", () => {
     const result = encodeConfInvocation({ lang: "fr" });
     expect(result).toContain('lang: "fr"');
+  });
+
+  it("emits toc only when true", () => {
+    expect(encodeConfInvocation({ title: "X", toc: true })).toContain("toc: true");
+    expect(encodeConfInvocation({ title: "X", toc: false })).not.toContain("toc: true");
+    expect(encodeConfInvocation({ title: "X" })).not.toContain("toc: true");
   });
 });

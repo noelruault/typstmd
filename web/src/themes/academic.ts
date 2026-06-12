@@ -9,6 +9,7 @@ export const academicTheme: Theme = {
   authors: (),
   date: none,
   lang: "en",
+  toc: false,
   font: "New Computer Modern",
   fontsize: 11pt,
   doc,
@@ -73,31 +74,37 @@ export const academicTheme: Theme = {
 
   show heading.where(level: 1): it => block(above: 2em, below: 1em)[
     #set text(weight: "bold", size: 18pt)
+    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 2): it => block(above: 1.5em, below: 0.8em)[
     #set text(weight: "bold", size: 15pt)
+    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
     #set text(weight: "semibold", style: "italic", size: 13pt)
+    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
     #set text(weight: "bold", size: 12pt)
+    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
     #set text(weight: "bold", size: 11pt)
+    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 6): it => block(above: 1em, below: 0.5em)[
     #set text(weight: "regular", style: "italic", size: 11pt)
+    #show raw: set text(size: 1em)
     #it
   ]
 
@@ -108,28 +115,33 @@ export const academicTheme: Theme = {
   // Links
   show link: set text(fill: rgb("#1a0dab"))
 
-  // Title block
+  // Title page (rendered when frontmatter supplies a title)
   if title != none {
-    v(3em)
-    align(center)[
-      #text(size: 18pt, weight: "bold")[#title]
+    page(header: none, footer: none)[
+      #v(1fr)
+      #align(center)[
+        #text(font: font, size: 24pt, weight: "bold")[#title]
+        #if authors.len() > 0 {
+          v(1.2em)
+          text(size: 13pt)[#authors.map(a => a.name).join(", ")]
+        }
+        #if date != none {
+          v(0.6em)
+          text(size: 11pt, style: "italic")[#date]
+        }
+      ]
+      #v(2fr)
     ]
-    v(0.5em)
-  }
-  if authors.len() > 0 {
-    align(center)[
-      #text(size: 11pt)[#authors.map(a => a.name).join(", ")]
-    ]
-    v(0.3em)
-  }
-  if date != none {
-    align(center)[
-      #text(size: 10pt, style: "italic")[#date]
-    ]
-    v(2em)
   }
 
   counter(page).update(1)
+
+  // Auto-generated table of contents (enabled by the toc frontmatter flag)
+  if toc {
+    outline(title: [Contents], depth: 3, indent: auto)
+    pagebreak()
+  }
+
   doc
 }
 `,

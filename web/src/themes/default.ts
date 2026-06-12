@@ -9,6 +9,7 @@ export const defaultTheme: Theme = {
   authors: (),
   date: none,
   lang: "en",
+  toc: false,
   font: "Linux Libertine",
   fontsize: 12pt,
   doc,
@@ -71,31 +72,37 @@ export const defaultTheme: Theme = {
 
   show heading.where(level: 1): it => align(left, block(above: 1.5em, below: 1em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 22pt)
+    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 2): it => align(left, block(above: 1.3em, below: 0.8em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 17pt)
+    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 3): it => align(left, block(above: 1.2em, below: 0.6em)[
     #set text(font: font, weight: "semibold", size: 15pt)
+    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 4): it => align(left, block(above: 1em, below: 0.5em)[
     #set text(font: font, weight: "bold", size: 13pt)
+    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 5): it => align(left, block(above: 1em, below: 0.5em)[
     #set text(font: font, weight: "bold", size: 12pt)
+    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 6): it => align(left, block(above: 1em, below: 0.5em)[
     #set text(font: font, weight: "regular", style: "italic", size: 12pt)
+    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
@@ -107,23 +114,33 @@ export const defaultTheme: Theme = {
   show link: underline
   show link: set text(fill: navy)
 
-  // Title block
+  // Title page (rendered when frontmatter supplies a title)
   if title != none {
-    v(10pt)
-    align(left, text(size: 20pt)[
-      #set par(justify: false)
-      #title
-    ])
-    v(2pt)
+    page(header: none, footer: none)[
+      #v(1fr)
+      #align(center)[
+        #text(font: font, weight: "bold", size: 28pt)[#title]
+        #if authors.len() > 0 {
+          v(1.5em)
+          text(size: 14pt)[#authors.map(a => a.name).join(", ")]
+        }
+        #if date != none {
+          v(0.8em)
+          text(size: 12pt, fill: luma(90))[#date]
+        }
+      ]
+      #v(2fr)
+    ]
   }
-  if date != none {
-    align(left, text(size: 11pt)[#date])
-    v(2pt)
-  }
-  line(start: (0%,0%), end: (100%,0%), stroke: 1pt + gray)
-  v(2pt)
 
   counter(page).update(1)
+
+  // Auto-generated table of contents (enabled by the toc frontmatter flag)
+  if toc {
+    outline(title: [Contents], depth: 3, indent: auto)
+    pagebreak()
+  }
+
   doc
 }
 `,

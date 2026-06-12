@@ -9,6 +9,7 @@ export const minimalTheme: Theme = {
   authors: (),
   date: none,
   lang: "en",
+  toc: false,
   font: "Linux Libertine",
   fontsize: 11pt,
   doc,
@@ -61,31 +62,37 @@ export const minimalTheme: Theme = {
 
   show heading.where(level: 1): it => block(above: 2em, below: 1em)[
     #set text(weight: "bold", size: 22pt)
+    #show raw: set text(size: 1em)
     #it.body
   ]
 
   show heading.where(level: 2): it => block(above: 1.5em, below: 0.8em)[
     #set text(weight: "semibold", size: 16pt)
+    #show raw: set text(size: 1em)
     #it.body
   ]
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
     #set text(weight: "semibold", size: 14pt, fill: luma(60))
+    #show raw: set text(size: 1em)
     #it.body
   ]
 
   show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
     #set text(weight: "bold", size: 12pt)
+    #show raw: set text(size: 1em)
     #it.body
   ]
 
   show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
     #set text(weight: "bold", size: 11pt)
+    #show raw: set text(size: 1em)
     #it.body
   ]
 
   show heading.where(level: 6): it => block(above: 1em, below: 0.5em)[
     #set text(weight: "regular", style: "italic", size: 11pt, fill: luma(100))
+    #show raw: set text(size: 1em)
     #it.body
   ]
 
@@ -96,18 +103,33 @@ export const minimalTheme: Theme = {
   // Links
   show link: set text(fill: rgb("#1a6dd4"))
 
-  // Title block
+  // Title page (rendered when frontmatter supplies a title)
   if title != none {
-    v(2em)
-    text(size: 22pt, weight: "bold")[#title]
-    v(0.5em)
-  }
-  if date != none {
-    text(size: 10pt, fill: luma(120))[#date]
-    v(1em)
+    page(footer: none)[
+      #v(1fr)
+      #align(center)[
+        #text(font: font, weight: "bold", size: 26pt)[#title]
+        #if authors.len() > 0 {
+          v(1.2em)
+          text(size: 13pt)[#authors.map(a => a.name).join(", ")]
+        }
+        #if date != none {
+          v(0.6em)
+          text(size: 11pt, fill: luma(120))[#date]
+        }
+      ]
+      #v(2fr)
+    ]
   }
 
   counter(page).update(1)
+
+  // Auto-generated table of contents (enabled by the toc frontmatter flag)
+  if toc {
+    outline(title: [Contents], depth: 3, indent: auto)
+    pagebreak()
+  }
+
   doc
 }
 `,

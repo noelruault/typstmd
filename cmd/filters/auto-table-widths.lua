@@ -6,7 +6,7 @@ function Table(tbl)
   if n > 0 then
     local w = 1.0 / n
     for i, colspec in ipairs(tbl.colspecs) do
-      colspec[2] = pandoc.ColWidth(w)
+      colspec[2] = w
     end
   end
   return tbl

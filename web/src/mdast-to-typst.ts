@@ -306,6 +306,12 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
       case "mark":
         return `#highlight[${serializeChildren(node as MdastMark)}]`;
 
+      case "yaml":
+      case "toml":
+        // Frontmatter: consumed by extractFrontmatter() for document metadata
+        // (see pipeline.ts). Emits no body content, so it is not "unsupported".
+        return "";
+
       // ── Unsupported nodes: warn + placeholder ──
 
       case "html": {

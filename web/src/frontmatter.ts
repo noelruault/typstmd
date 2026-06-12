@@ -18,6 +18,7 @@ export interface Metadata {
   author?: string | string[];
   date?: string;
   lang?: string;
+  toc?: boolean;
 }
 
 /**
@@ -68,6 +69,10 @@ function normalizeMetadata(raw: Record<string, unknown>): Metadata {
     meta.lang = raw.lang.trim();
   }
 
+  if (typeof raw.toc === "boolean") {
+    meta.toc = raw.toc;
+  }
+
   return meta;
 }
 
@@ -96,6 +101,10 @@ export function encodeConfInvocation(meta: Metadata): string {
 
   if (meta.lang) {
     args.push(`  lang: "${meta.lang}"`);
+  }
+
+  if (meta.toc) {
+    args.push(`  toc: true`);
   }
 
   if (args.length === 0) {

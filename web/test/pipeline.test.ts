@@ -26,6 +26,23 @@ describe("pipeline integration", () => {
     expect(result.typstSource).toContain("date: [2025-01-01]");
   });
 
+  it("does not emit an unsupported warning or placeholder for frontmatter", () => {
+    const md = "---\ntitle: My Doc\ntoc: true\n---\n\n# Content";
+    const result = markdownToTypst(md);
+    // The yaml frontmatter node is consumed for metadata, not rendered as body.
+    expect(result.warnings.some((w) => w.nodeType === "yaml")).toBe(false);
+    expect(result.typstSource).not.toContain("[⚠ unsupported: yaml]");
+  });
+
+  it("activates the table of contents only when toc: true", () => {
+    const on = markdownToTypst("---\ntitle: D\ntoc: true\n---\n# H1");
+    const off = markdownToTypst("---\ntitle: D\n---\n# H1");
+    expect(on.typstSource).toContain("toc: true");
+    expect(off.typstSource).not.toContain("toc: true");
+    // the theme template always defines the outline machinery; activation is via conf()
+    expect(on.typstSource).toContain("outline(");
+  });
+
   it("collects warnings for unsupported nodes", () => {
     const md = "<div>html</div>";
     const result = markdownToTypst(md);
