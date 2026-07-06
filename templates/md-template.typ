@@ -154,6 +154,9 @@
   set table(inset: 8pt, stroke: 0.5pt + gray)
   show table.cell.where(y: 0): set text(weight: "semibold")
   show figure.where(kind: table): set figure.caption(position: top)
+  // Figures do not break across pages by default, so a table taller than
+  // the remaining page overflows and rows overlap. Make table figures breakable.
+  show figure.where(kind: table): set block(breakable: true)
 
 // URLs
 //
