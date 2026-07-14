@@ -110,6 +110,11 @@
 //
   show raw: set block(inset: (left: 2em, top: 0.5em, right: 1em, bottom: 0.5em ))
   show raw: set text(fill: rgb("#116611"), size: 9pt) //green
+  // Match the web themes: tight code line-spacing, and a zero-width break after each comma so long
+  // space-less numeric lists (e.g. SQL IN-lists) wrap instead of overflowing and opening a gap.
+  show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
+  show raw.where(block: true): it => { show regex(","): m => m.text + "\u{200B}"; it }
+  show raw.where(block: false): it => { show regex("[-_./:]"): m => m.text + "\u{200B}"; it }
 
 
 // Footnote formatting
@@ -124,11 +129,17 @@
 //
   show heading: set text(hyphenate: false)
 
-  show heading.where(level: 1): it => align(left, block(above: 1.8em, below: 1.8em, width: 80%, text(font: font, weight: "semibold", size: 14pt, it.body)))
+  show heading.where(level: 1): it => align(left, block(above: 1.5em, below: 1em, width: 100%, text(font: font, weight: "semibold", size: 22pt, { show raw: set text(size: 1em); it.body })))
 
-  show heading.where(level: 2): it => align(left, block(above: 1.6em, below: 1.6em, width: 80%, text(font: font, weight: "semibold", size: 12pt, it.body)))
+  show heading.where(level: 2): it => align(left, block(above: 1.3em, below: 0.8em, width: 100%, text(font: font, weight: "semibold", size: 17pt, { show raw: set text(size: 1em); it.body })))
 
-  show heading.where(level: 3): it => align(left, block(above: 1.6em, below: 1.6em, text(font: font, weight: "regular", style: "italic", size: 11pt, it.body)))
+  show heading.where(level: 3): it => align(left, block(above: 1.2em, below: 0.6em, text(font: font, weight: "semibold", size: 15pt, { show raw: set text(size: 1em); it.body })))
+
+  show heading.where(level: 4): it => align(left, block(above: 1em, below: 0.5em, text(font: font, weight: "bold", size: 13pt, { show raw: set text(size: 1em); it.body })))
+
+  show heading.where(level: 5): it => align(left, block(above: 1em, below: 0.5em, text(font: font, weight: "bold", size: 12pt, { show raw: set text(size: 1em); it.body })))
+
+  show heading.where(level: 6): it => align(left, block(above: 1em, below: 0.5em, text(font: font, weight: "regular", style: "italic", size: 12pt, { show raw: set text(size: 1em); it.body })))
 
 // Tables
 //
