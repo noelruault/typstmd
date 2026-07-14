@@ -209,8 +209,19 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
         return `${prefix} ${serializeChildren(h)}`;
       }
 
-      case "paragraph":
-        return serializeChildren(node as MdastParagraph);
+      case "paragraph": {
+        const p = node as MdastParagraph;
+        // ponytail: "+++" alone on its own line → page break. Only a lone
+        // "+++" paragraph matches, so inline "+++" in prose is untouched.
+        if (
+          p.children.length === 1 &&
+          p.children[0].type === "text" &&
+          (p.children[0] as MdastText).value.trim() === "+++"
+        ) {
+          return "#pagebreak()";
+        }
+        return serializeChildren(p);
+      }
 
       case "strong":
         return `*${serializeChildren(node as MdastStrong)}*`;

@@ -387,3 +387,13 @@ describe("regression: Typst function calls use # prefix", () => {
     }
   });
 });
+
+describe("page break (+++)", () => {
+  it("converts a lone +++ to #pagebreak()", () => {
+    expect(toTypst("a\n\n+++\n\nb")).toBe("a\n\n#pagebreak()\n\nb");
+  });
+
+  it("leaves inline +++ untouched", () => {
+    expect(toTypst("use a +++ b here")).toBe("use a +++ b here");
+  });
+});

@@ -52,6 +52,7 @@ PDFFILE="${FILENAME}.pdf"
 PANDOC_PATH="$(which pandoc)"
 TEMPLATE_FILE_PATH="./templates/md-template.typ"
 LUA_FILTER_PATH="./cmd/filters/auto-table-widths.lua"
+PAGEBREAK_FILTER_PATH="./cmd/filters/pagebreak.lua"
 OUTPUT_PATH="./output"
 
-"$PANDOC_PATH" "$INPUTFILE" $MERMAID_FILTER --lua-filter="$LUA_FILTER_PATH" --pdf-engine=typst --template="$TEMPLATE_FILE_PATH" -o "$OUTPUT_PATH"/"$PDFFILE"
+"$PANDOC_PATH" "$INPUTFILE" $MERMAID_FILTER --lua-filter="$LUA_FILTER_PATH" --lua-filter="$PAGEBREAK_FILTER_PATH" --pdf-engine=typst --template="$TEMPLATE_FILE_PATH" -o "$OUTPUT_PATH"/"$PDFFILE"
