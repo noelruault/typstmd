@@ -47,6 +47,13 @@ export const minimalTheme: Theme = {
   // Code
   show raw: set block(inset: (left: 1.5em, top: 0.4em, right: 0.8em, bottom: 0.4em))
   show raw: set text(fill: luma(60), size: 9pt)
+  // Code keeps its own tight line spacing instead of the body's loose leading.
+  show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
+  // Break long space-less comma runs (numeric IN-lists) so they wrap instead of overflowing; without a break point Typst drops the indent and opens a gap. Trade-off: copied code carries these invisible breaks.
+  show raw.where(block: true): it => {
+    show regex(","): m => m.text + "\u{200B}"
+    it
+  }
   show raw.where(block: false): it => {
     show regex("[-_./:]"): m => m.text + "\u{200B}"
     it

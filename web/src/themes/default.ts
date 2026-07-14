@@ -54,6 +54,13 @@ export const defaultTheme: Theme = {
   // Code
   show raw: set block(inset: (left: 2em, top: 0.5em, right: 1em, bottom: 0.5em))
   show raw: set text(fill: rgb("#116611"), size: 9pt)
+  // Code keeps its own tight line spacing instead of the body's loose leading.
+  show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
+  // Break long space-less comma runs (numeric IN-lists) so they wrap instead of overflowing; without a break point Typst drops the indent and opens a gap. Trade-off: copied code carries these invisible breaks.
+  show raw.where(block: true): it => {
+    show regex(","): m => m.text + "\u{200B}"
+    it
+  }
   // Allow inline code (long identifiers, paths, dotted names) to wrap inside
   // narrow contexts like table cells by inserting zero-width breakpoints
   // after common identifier separators.

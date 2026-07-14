@@ -1,5 +1,4 @@
-// Adapted from Letter-size Pandoc-Typst layout template
-// by John Maxwell, jmax@sfu.ca, July 2024
+// Adapted from Letter-size Pandoc-Typst layout template by John Maxwell, jmax@sfu.ca, July 2024
 //
 // This template is for Typst with Pandoc
 // The assumption is markdown source, with a
@@ -13,22 +12,19 @@
 //     -o myBeautifulPDF.pdf
 
 
-// Pandoc/markdown HR treatment
-// display as a blank white section break
+// Pandoc/markdown HR treatment display as a blank white section break
 // I bet you can figure out how to make it a different colour!
 
 // Resources:
 // - https://neilzone.co.uk/2025/01/using-pandoc-and-typst-to-convert-markdown-into-custom-formatted-pdfs-with-a-sample-template/
 // - https://imaginarytext.ca/posts/2024/pandoc-typst-tutorial/
 
-#let horizontalrule = [
-  #v(1pt)
-  #line(start: (25%,0%), end: (75%,0%), stroke: 1pt + white)
-  #v(1pt)
+#let horizontalrule = [ v(1pt) line(start: (25%,0%), end: (75%,0%), stroke: 1pt + white) v(1pt)
 ]
 
 
 // MAIN CONF - this block goes almost to the end of this file
+// NOTE: keep all styling as SINGLE inline expressions, e.g. align(x, text(..)[..]), never "#set X" followed by another statement. A PostToolUse formatter joins lines and would break multi-statement blocks (Typst "expected semicolon"). Inline = safe.
 
 #let conf(
 // SET BASIC TEMPLATE DEFAULTS:
@@ -56,18 +52,16 @@
 //
     header:  // A running head: document title
       context {
-        if counter(page).at(here()).first() > 1 [    // after page 1
-           #set text(size: 10pt, style: "italic")
-           #align(right)[#title]
-        ]
+        if counter(page).at(here()).first() > 1 {
+          align(right, text(size: 10pt, style: "italic")[#title])   // formatter-proof: single expr
+        }
     },
     footer-descent: 30%, //30 is default
     footer:  // A running footer: page numbers
       context {
-        if counter(page).at(here()).first() > 0 [     // all pages
-          #set text(size: 10pt)
-            #align(right)[#counter(page).display("1")]
-          ]
+        if counter(page).at(here()).first() > 0 {
+          align(right, text(size: 10pt)[#counter(page).display("1")])   // formatter-proof: single expr
+        }
      },
 )
 
@@ -130,32 +124,18 @@
 //
   show heading: set text(hyphenate: false)
 
-  show heading.where(level: 1
-    ):  it => align(left, block(above: 1.5em, below: 1.5em, width: 80% )[
-        #set par(leading: 5em)
-        #set text(font: font, weight: "semibold", size: 14pt)
-        #block(it.body)
-      ])
+  show heading.where(level: 1): it => align(left, block(above: 1.8em, below: 1.8em, width: 80%, text(font: font, weight: "semibold", size: 14pt, it.body)))
 
-  show heading.where(level: 2
-    ): it => align(left, block(above: 1.3em, below: 1.3em, width: 80%)[
-        #set text(font: font, weight: "semibold", size: 12pt)
-        #block(it.body)
-      ])
+  show heading.where(level: 2): it => align(left, block(above: 1.6em, below: 1.6em, width: 80%, text(font: font, weight: "semibold", size: 12pt, it.body)))
 
-  show heading.where(level: 3
-    ): it => align(left, block(above: 1.3em, below: 1.3em)[
-        #set text(font: font, weight: "regular", style: "italic", size: 11pt)
-        #block(it.body)
-      ])
+  show heading.where(level: 3): it => align(left, block(above: 1.6em, below: 1.6em, text(font: font, weight: "regular", style: "italic", size: 11pt, it.body)))
 
 // Tables
 //
   set table(inset: 8pt, stroke: 0.5pt + gray)
   show table.cell.where(y: 0): set text(weight: "semibold")
   show figure.where(kind: table): set figure.caption(position: top)
-  // Figures do not break across pages by default, so a table taller than
-  // the remaining page overflows and rows overlap. Make table figures breakable.
+  // Figures do not break across pages by default, so a table taller than the remaining page overflows and rows overlap. Make table figures breakable.
   show figure.where(kind: table): set block(breakable: true)
 
 // URLs
@@ -169,16 +149,13 @@
 // HERE'S THE DOCUMENT LAYOUT
 
 
-// THIS IS THE TITLE/METADATA BLOCK
-// v is for vertical spacing
+// THIS IS THE TITLE/METADATA BLOCK v is for vertical spacing
 //
 
 v(10pt)
-align(right, text(size: 20pt)[Your name])
+align(right, text(size: 20pt)[#authors.first().name])
   v(1em)
-  align(left, text(size: 20pt)[
-    #set par(justify: false)
-    #title])
+  align(left, text(size: 20pt, title))   // formatter-proof; global par is already justify:false
   v(2pt)
 //  align(left, text(size: 16pt, style: "italic")[
 //     #set par(first-line-indent: 0em, justify: false)
@@ -199,9 +176,7 @@ align(right, text(size: 20pt)[Your name])
 
 // COLOPHON at bottom of last page
 //
-//v(1fr)
-//line(start: (30%,0%), end: (70%,0%), stroke: 0.5pt + gray)
-//align(center, text(size: 8pt, style: "italic")[For any questions relating to this, please email #email.])
+//v(1fr) line(start: (30%,0%), end: (70%,0%), stroke: 0.5pt + gray) align(center, text(size: 8pt, style: "italic")[For any questions relating to this, please email #email.])
 
 
 }  // end of #let conf block
