@@ -1,6 +1,7 @@
 import { getCompiler, type FontSpec, type TypstCompiler } from "./typst-compiler";
 import { markdownToTypst } from "./pipeline";
 import { getTheme, EMOJI_FONT } from "./themes/index";
+import { fetchImages, fetchPackages, scanImageUrls, scanPackageSpecs } from "./resources";
 import {
   getCustomTemplate,
   setCustomTemplate,
@@ -94,7 +95,29 @@ function resolveTemplate(themeId: string): string {
   return getCustomTemplate(themeId) ?? getTheme(themeId).template;
 }
 
-// The "emoji" asset group is not used: its NotoColorEmoji URL 404s at the pinned typst-dev-assets tag, so the emoji face comes from EMOJI_FONT.url instead.
+/** Files the user dropped on the page, keyed by the path their Markdown refers to. */
+const droppedFiles = new Map<string, Uint8Array>();
+
+async function resolveAssets(markdown: string) {
+  const fetched = await fetchImages(scanImageUrls(markdown));
+  const paths = new Map<string, string>();
+  const files: { path: string; bytes: Uint8Array }[] = [];
+
+  for (const [url, asset] of fetched) {
+    if (asset) {
+      paths.set(url, asset.path);
+      files.push(asset);
+    }
+  }
+  for (const [name, bytes] of droppedFiles) {
+    const path = name.startsWith("/") ? name : `/${name}`;
+    paths.set(name, path);
+    files.push({ path, bytes });
+  }
+  return { paths, files };
+}
+
+// The "emoji" asset group is unused: its NotoColorEmoji URL 404s at the pinned typst-dev-assets tag.
 function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
   const { assets, urls = [] } = getTheme(themeId).fonts;
   return {
@@ -176,10 +199,15 @@ async function doCompile() {
         ? getValue(view)
         : resolveTemplate(themeSelect.value);
 
+    // Resources are fetched before serializing: image paths must be known while the body is built, and both caches are keyed by URL so typing does not refetch anything.
+    const assets = await resolveAssets(currentMarkdown);
+    await fetchPackages(scanPackageSpecs(templateOverride));
+
     const { typstSource, warnings, needsEmojiFont } = markdownToTypst(currentMarkdown, {
       themeId: themeSelect.value,
       hardBreaks: hardBreaksToggle.checked,
       templateOverride,
+      assets: assets.paths,
     });
     lastTypstSource = typstSource;
 
@@ -188,6 +216,7 @@ async function doCompile() {
     }
 
     compiler = await getCompiler(fontsFor(themeSelect.value, needsEmojiFont));
+    compiler.mapAssets(assets.files);
     const pdfBytes = await compiler.compile(typstSource);
 
     // Stale job - discard
@@ -435,7 +464,12 @@ document.addEventListener("drop", (e) => {
   if (!file) return;
 
   if (!file.name.endsWith(".md") && !file.name.endsWith(".markdown") && file.type !== "text/markdown") {
-    setStatus("Drop a .md file to load it");
+    // A browser cannot read a relative path, so a local `![](photo.png)` only works once the file is dropped in and mapped into the compiler's virtual filesystem.
+    void file.arrayBuffer().then((buffer) => {
+      droppedFiles.set(file.name, new Uint8Array(buffer));
+      setStatus(`Added ${file.name}, available to image("${file.name}")`);
+      doCompile();
+    });
     return;
   }
 

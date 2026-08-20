@@ -152,10 +152,8 @@ describe("strikethrough", () => {
 });
 
 describe("images", () => {
-  it("renders remote image as placeholder", () => {
-    expect(toTypst("![alt text](http://img.png)")).toBe(
-      "\\[Image: alt text\\]",
-    );
+  it("emits nothing for a remote image the caller could not fetch", () => {
+    expect(toTypst("![alt text](http://img.png)")).toBe("");
   });
 
   it("renders local image with #figure", () => {
@@ -170,9 +168,9 @@ describe("images", () => {
     );
   });
 
-  it("does not warn on images with URL", () => {
+  it("warns when a remote image is unavailable, rather than emitting prose", () => {
     const w = getWarnings("![alt](http://img.png)");
-    expect(w.some((w) => w.nodeType === "image")).toBe(false);
+    expect(w.some((warning) => warning.nodeType === "image")).toBe(true);
   });
 });
 

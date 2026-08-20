@@ -125,6 +125,8 @@ interface MdastMark extends Parent {
 
 export interface SerializeOptions {
   warnings: WarningCollector;
+  /** URL or local path to a VFS path the compiler has been given. */
+  assets?: Map<string, string>;
 }
 
 /** Zero-width space: an invisible line-break opportunity for Typst. */
@@ -156,6 +158,7 @@ function breakLongTokens(s: string): string {
 
 export function mdastToTypst(tree: Node, options: SerializeOptions): string {
   const { warnings } = options;
+  const assets = options.assets ?? new Map<string, string>();
 
   // Footnote resolution: collect definitions, track reference counts
   const footnoteDefs = new Map<string, Node[]>();
@@ -172,19 +175,22 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
   let inTableCell = false;
 
   function serializeChildren(node: Parent, sep = ""): string {
-    return node.children.map((child) => serialize(child)).join(sep);
+    const parts = node.children.map((child) => serialize(child));
+    // A dropped node (unavailable image, stripped HTML) must not leave a blank block behind.
+    return (sep === "" ? parts : parts.filter((part) => part !== "")).join(sep);
   }
 
   function emitImage(url: string, alt: string): string {
-    const isRemote = /^https?:\/\//i.test(url);
-    if (isRemote) {
-      // Remote URLs: Typst CLI can't fetch them. Emit placeholder.
-      const desc = alt || url;
-      return escapeText(`[Image: ${desc}]`);
+    // A browser has no filesystem and cannot read a cross-origin host without CORS headers,
+    // so an unresolved image is a warning, never an image() call Typst will fail on.
+    const resolved = assets.get(url) ?? (/^https?:\/\//i.test(url) ? undefined : url);
+    if (resolved === undefined) {
+      warnings.warn("image", `Image not available: ${url}`);
+      return "";
     }
     return alt
-      ? `#figure(image("${escapeUrl(url)}"), caption: [${escapeText(alt)}])`
-      : `#figure(image("${escapeUrl(url)}"))`;
+      ? `#figure(image("${escapeUrl(resolved)}"), caption: [${escapeText(alt)}])`
+      : `#figure(image("${escapeUrl(resolved)}"))`;
   }
 
   function serialize(node: Node): string {
@@ -278,7 +284,8 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
         if (url) {
           return emitImage(url, alt);
         }
-        return escapeText(`[Image: ${alt || "no source"}]`);
+        warnings.warn("image", `Image has no source: ${alt || "(no alt text)"}`);
+        return "";
       }
 
       case "imageReference": {

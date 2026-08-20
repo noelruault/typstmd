@@ -67,6 +67,8 @@ export interface PipelineOptions {
   themeId?: string;
   hardBreaks?: boolean;
   templateOverride?: string;
+  /** Image URL or path to the VFS path the compiler was given; see resources.ts. */
+  assets?: Map<string, string>;
 }
 
 export function markdownToTypst(
@@ -93,7 +95,7 @@ export function markdownToTypst(
 
   // Transform MDAST to Typst body
   const warnings = createWarningCollector();
-  const body = mdastToTypst(tree, { warnings });
+  const body = mdastToTypst(tree, { warnings, assets: options?.assets });
 
   const theme = getTheme(options?.themeId ?? "default");
   const templateSource = options?.templateOverride ?? theme.template;

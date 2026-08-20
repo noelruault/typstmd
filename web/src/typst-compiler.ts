@@ -6,13 +6,25 @@
 import {
   createTypstCompiler,
   preloadRemoteFonts,
+  initOptions,
+  MemoryAccessModel,
+  FetchPackageRegistry,
 } from "@myriaddreamin/typst.ts";
+import { packageCacheRef } from "./resources";
 
 export interface TypstCompiler {
   init(): Promise<void>;
   compile(source: string): Promise<Uint8Array>;
   getErrors(): string[];
+  /** Puts binary files in the VFS so `image("/assets/…")` resolves. */
+  mapAssets(assets: Iterable<{ path: string; bytes: Uint8Array }>): void;
 }
+
+/**
+ * Where package tarballs come from. `prefetch` reads bytes fetched asynchronously before
+ * the compile; `sync-xhr` lets typst.ts fetch them itself, blocking the main thread.
+ */
+export type PackageStrategy = "prefetch" | "sync-xhr";
 
 /** Fonts a compiler instance is built with. Fonts load only in `beforeBuild`, so a
  * different set means a different instance, which costs a full WASM init. */
@@ -51,7 +63,18 @@ function formatDiagnostics(diagnostics: unknown): string[] {
   return [String(diagnostics)];
 }
 
-export function createCompiler(fonts: FontSpec = DEFAULT_FONTS): TypstCompiler {
+// Reads the cache resources.ts warms, so a compile does no network I/O on the main thread.
+// Falls back to the base class's synchronous XHR when a spec was never prefetched, which blocks the UI but still renders rather than failing the import.
+class PrefetchedPackageRegistry extends FetchPackageRegistry {
+  pullPackageData(spec: Parameters<FetchPackageRegistry["pullPackageData"]>[0]) {
+    return packageCacheRef().get(this.resolvePath(spec)) ?? super.pullPackageData(spec);
+  }
+}
+
+export function createCompiler(
+  fonts: FontSpec = DEFAULT_FONTS,
+  packageStrategy: PackageStrategy = "prefetch",
+): TypstCompiler {
   const inner = createTypstCompiler();
   let initialized = false;
   let lastErrors: string[] = [];
@@ -67,11 +90,19 @@ export function createCompiler(fonts: FontSpec = DEFAULT_FONTS): TypstCompiler {
         return r;
       });
 
+      const accessModel = new MemoryAccessModel();
+      const registry =
+        packageStrategy === "prefetch"
+          ? new PrefetchedPackageRegistry(accessModel)
+          : new FetchPackageRegistry(accessModel);
+
       performance.mark("compiler-init-start");
       await inner.init({
         getModule: () => wasmReady,
         beforeBuild: [
           preloadRemoteFonts(fonts.urls, { assets: fonts.assets }),
+          initOptions.withAccessModel(accessModel),
+          initOptions.withPackageRegistry(registry),
         ],
       });
       performance.mark("compiler-init-end");
@@ -120,21 +151,30 @@ export function createCompiler(fonts: FontSpec = DEFAULT_FONTS): TypstCompiler {
     getErrors() {
       return lastErrors;
     },
+
+    mapAssets(assets) {
+      for (const { path, bytes } of assets) {
+        inner.mapShadow(path, bytes);
+      }
+    },
   };
 }
 
-function fontSignature(fonts: FontSpec): string {
-  return `${[...fonts.assets].sort().join(",")}|${[...fonts.urls].sort().join(",")}`;
+function instanceSignature(fonts: FontSpec, packageStrategy: PackageStrategy): string {
+  return `${[...fonts.assets].sort().join(",")}|${[...fonts.urls].sort().join(",")}|${packageStrategy}`;
 }
 
 const instances = new Map<string, TypstCompiler>();
 
 // getCompiler is called on every compile: each cache miss pays a full WASM init plus font parsing.
-export async function getCompiler(fonts: FontSpec = DEFAULT_FONTS): Promise<TypstCompiler> {
-  const key = fontSignature(fonts);
+export async function getCompiler(
+  fonts: FontSpec = DEFAULT_FONTS,
+  packageStrategy: PackageStrategy = "prefetch",
+): Promise<TypstCompiler> {
+  const key = instanceSignature(fonts, packageStrategy);
   let instance = instances.get(key);
   if (!instance) {
-    instance = createCompiler(fonts);
+    instance = createCompiler(fonts, packageStrategy);
     instances.set(key, instance);
   }
   await instance.init();
