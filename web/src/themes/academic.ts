@@ -79,38 +79,44 @@ export const academicTheme: Theme = {
   set heading(numbering: "1.1.")
   show heading: set text(hyphenate: false)
 
-  show heading.where(level: 1): it => block(above: 2em, below: 1em)[
+  show heading.where(level: 1): it => block(above: 2em, below: 1.2em)[
     #set text(weight: "bold", size: 18pt)
+    #set par(leading: 0.4em)
     #show raw: set text(size: 1em)
     #it
   ]
 
-  show heading.where(level: 2): it => block(above: 1.5em, below: 0.8em)[
+  show heading.where(level: 2): it => block(above: 1.5em, below: 1.1em)[
     #set text(weight: "bold", size: 15pt)
+    #set par(leading: 0.4em)
     #show raw: set text(size: 1em)
     #it
   ]
 
-  show heading.where(level: 3): it => block(above: 1.2em, below: 0.6em)[
+  show heading.where(level: 3): it => block(above: 1.2em, below: 1em)[
     #set text(weight: "semibold", style: "italic", size: 13pt)
+    #set par(leading: 0.4em)
     #show raw: set text(size: 1em)
     #it
   ]
 
-  show heading.where(level: 4): it => block(above: 1em, below: 0.5em)[
+  show heading.where(level: 4): it => block(above: 1em, below: 0.9em)[
     #set text(weight: "bold", size: 12pt)
+    #set par(leading: 0.4em)
     #show raw: set text(size: 1em)
     #it
   ]
 
-  show heading.where(level: 5): it => block(above: 1em, below: 0.5em)[
+  show heading.where(level: 5): it => block(above: 1em, below: 0.85em)[
     #set text(weight: "bold", size: 11pt)
+    #set par(leading: 0.4em)
     #show raw: set text(size: 1em)
     #it
   ]
 
-  show heading.where(level: 6): it => block(above: 1em, below: 0.5em)[
+  show heading.where(level: 6): it => block(above: 1em, below: 0.85em)[
     #set text(weight: "regular", style: "italic", size: 11pt)
+    #set par(leading: 0.4em)
     #show raw: set text(size: 1em)
     #it
   ]

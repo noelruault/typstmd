@@ -51,6 +51,21 @@ bun run dev              # :3000, paste a fixture and eyeball the PDF
 When you fix a layout bug, add a fixture case that reproduces it to the
 relevant file so the failure mode is documented and re-checkable.
 
+## Theme spacing rules (vertical rhythm + WCAG)
+
+The `default` theme's spacing is a tuned system, not a bag of independent numbers. Change one value in isolation and you break the hierarchy that took several rounds to get right. Before touching any `leading` / `spacing` / `above` / `below` in `web/src/themes/default.ts`, keep these invariants:
+
+- **Ordering (non-negotiable):** `space above a heading` > `space between paragraphs` > `space below a heading` > `space between lines`. A heading must clearly separate from the previous section (large `above`), bind to the body it introduces (small `below`), and a heading that wraps must read as one title (tight internal `leading`), not as several stacked titles.
+- **Line height** — `par(leading: 0.85em)` measures to a 1.5 line-height ratio, the WCAG 2.2 SC 1.4.12 minimum. It is applied to body, every heading level, and quotes so the whole document shares one rhythm. This value was measured with Typst's `measure()`, not guessed — re-measure if you change the body font (the em-to-line-height ratio is font-metric dependent).
+- **Paragraph spacing** — `par(spacing: 2em)` is 2× the 12pt font, the WCAG 1.4.12 minimum. If you raise it, you MUST raise every heading `above` to keep it larger.
+- **Heading `above`** must exceed paragraph spacing (h1 2.8em down to h6 2.2em, all > 2em). **Heading `below`** must stay under it (~1em, scaling by level) so the heading groups with its content instead of floating free.
+- **Letter-spacing and word-spacing are deliberately NOT baked in.** WCAG 1.4.12 only requires that content survive a *user* applying `tracking` / word-spacing; hard-coding them (`text(tracking:)` / `text(spacing:)`) alters the typeface's texture and reads as a font change. Leave them to the reader/browser.
+- **Code blocks are exempt** — `raw` keeps its own tight `leading` and normal letter spacing so monospace stays aligned.
+
+`minimal.ts` / `academic.ts` share the same wrapped-heading leading fix and should follow the same ordering. The `ieee` theme is governed by the IEEE spec instead (verified page geometry from `ieee-pages-and-margins-2016.pdf`, numbered headings, dedicated cover + TOC pages, body page numbers) — do not apply the default theme's values to it.
+
+Because unit tests only assert the generated Typst *string*, a spacing regression will pass `bun test`. Verify spacing changes by rendering — `web/test/visuals/headings.md` is the fixture for this.
+
 ## CLI pipeline architecture
 
 Linear, self-contained:

@@ -20,3 +20,5 @@ place an optional name for the file
 cabecera de tabla vertical si el width es mayor que el de las filas? para booleanos 0/1, para que occupen menos
 [x] tablas que se ajusten al max width de rows+row header
 [x] El header, por pequeño que sea (#####), su font size nunca puede ser mas pequeño que el body 
+[x] Onboard what could be useful from https://github.com/typstify/typstify
+[ ] Onboard integration with https://github.com/excalidraw/excalidraw (https://tuo-lei.com/notes/self-hosting-excalidraw-on-cloudflare/) or https://github.com/tldraw/tldraw (https://github.com/tldraw/tldraw-sync-cloudflare) to allow user to make drawn additions, ideally supporting "multiplayer"
