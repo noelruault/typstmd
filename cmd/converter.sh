@@ -51,8 +51,13 @@ FILENAME="${MARKDOWNFILE%.*}"
 PDFFILE="${FILENAME}.pdf"
 PANDOC_PATH="$(which pandoc)"
 TEMPLATE_FILE_PATH="./templates/md-template.typ"
-LUA_FILTER_PATH="./cmd/filters/auto-table-widths.lua"
+TABLE_FILTER_PATH="./cmd/filters/table.lua"
 PAGEBREAK_FILTER_PATH="./cmd/filters/pagebreak.lua"
+REMOTE_IMAGE_FILTER_PATH="./cmd/filters/remote-images.lua"
 OUTPUT_PATH="./output"
 
-"$PANDOC_PATH" "$INPUTFILE" $MERMAID_FILTER --lua-filter="$LUA_FILTER_PATH" --lua-filter="$PAGEBREAK_FILTER_PATH" --pdf-engine=typst --template="$TEMPLATE_FILE_PATH" -o "$OUTPUT_PATH"/"$PDFFILE"
+# Pinned to the web's plugin set; bare `markdown` grants ~40 extensions the web has never had.
+# `smart` stays on, or Pandoc escapes -- and " and only the CLI renders them literally.
+READER_DIALECT='markdown_strict+smart+pipe_tables+strikeout+task_lists+footnotes+yaml_metadata_block+mark+subscript+superscript+emoji+autolink_bare_uris+backtick_code_blocks+fenced_code_blocks+fenced_code_attributes'
+
+"$PANDOC_PATH" "$INPUTFILE" -f "$READER_DIALECT" $MERMAID_FILTER --lua-filter="$TABLE_FILTER_PATH" --lua-filter="$PAGEBREAK_FILTER_PATH" --lua-filter="$REMOTE_IMAGE_FILTER_PATH" --pdf-engine=typst --template="$TEMPLATE_FILE_PATH" -o "$OUTPUT_PATH"/"$PDFFILE"

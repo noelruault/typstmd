@@ -9,7 +9,7 @@ Typstmd converts Markdown files to PDF using Pandoc with a Typst template.
 ## Key files
 
 - `cmd/converter.sh` - main conversion script
-- `cmd/filters/auto-table-widths.lua` - Pandoc Lua filter for table column sizing
+- `cmd/filters/table.lua` - Pandoc Lua filter emitting the same `#table` shape as the web serializer
 - `templates/md-template.typ` - Typst template for PDF layout
 
 ## Known limitations

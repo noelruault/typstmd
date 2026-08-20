@@ -102,6 +102,14 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     expect(inHeading.height / inBody.height).toBeGreaterThan(1.5);
   });
 
+  it("repeats a table header on every page it spans", () => {
+    const rows = Array.from({ length: 90 }, (_, i) => `| Key ${i} | Value ${i} |`).join("\n");
+    const md = `| Column | Description |\n|---|---|\n${rows}\n`;
+    const { text } = render(md);
+    const headerCount = [...text.matchAll(/Column/g)].length;
+    expect(headerCount).toBeGreaterThan(1);
+  });
+
   it("renders six distinct heading levels", () => {
     const md = [1, 2, 3, 4, 5, 6].map((n) => `${"#".repeat(n)} Level${n}`).join("\n\n");
     const { words } = render(md);

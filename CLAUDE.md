@@ -70,9 +70,9 @@ Because unit tests only assert the generated Typst *string*, a spacing regressio
 
 Linear, self-contained:
 
-1. `cmd/converter.sh`: entry point. Validates deps, parses `--mermaid`, invokes Pandoc.
+1. `cmd/converter.sh`: entry point. Validates deps, parses `--mermaid`, invokes Pandoc with a **pinned reader dialect** (`READER_DIALECT`) that mirrors the web's remark plugin set. Bare `markdown` would grant ~40 extensions the web has never had; `smart` must stay on or the CLI escapes `--` and `"` that the web leaves for Typst.
 2. Pandoc applies:
-   - `cmd/filters/auto-table-widths.lua`: resets Pandoc's guessed column widths to `ColWidthDefault` so Typst auto-sizes tables.
+   - `cmd/filters/table.lua`: emits the same `#table(columns: …, table.header(…), …)` shape as `serializeTable` in the web serializer, including the same column-width heuristic. Keep the two in sync; a table split across pages loses its header without `table.header`.
    - Optional: `mermaid-filter` (npm) renders Mermaid code blocks to PNG.
    - `templates/md-template.typ`: Typst template for all PDF styling (A4, Libertinus Serif 12pt, headers/footers, code/quote/table). Pandoc template with `$variable$` interpolation, not pure Typst.
 3. Typst (as Pandoc `--pdf-engine`) compiles to PDF.

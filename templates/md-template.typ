@@ -30,7 +30,9 @@
 // SET BASIC TEMPLATE DEFAULTS:
   title: none,
   subtitle: none,
-  authors: ( (name: [Neil Brown]) ), // IF NOT IN METADATA
+  // Trailing comma makes this a one-element array; without it Typst reads a plain dictionary
+  // and `authors.first()` fails for every document that supplies no author metadata.
+  authors: ((name: [Neil Brown]),),
   date: datetime.today().display(),  // IF NOT IN METADATA
 //  email: "email@example.com", //IF NOT IN METADATA
   venue: none,

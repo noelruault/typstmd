@@ -398,16 +398,17 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
     }
 
     const columnCount = table.children[0]?.children?.length ?? 0;
-    const cells: string[] = [];
+    const headerCells: string[] = [];
+    const bodyCells: string[] = [];
     const colMaxLen = new Array(columnCount).fill(0);
 
-    for (const row of table.children) {
+    for (const [rowIndex, row] of table.children.entries()) {
       for (let i = 0; i < row.children.length; i++) {
         const cell = row.children[i] as MdastTableCell;
         inTableCell = true;
         const content = serializeChildren(cell);
         inTableCell = false;
-        cells.push(`[${content}]`);
+        (rowIndex === 0 ? headerCells : bodyCells).push(`[${content}]`);
         const len = cellTextLength(cell);
         if (i < columnCount && len > colMaxLen[i]) colMaxLen[i] = len;
       }
@@ -420,7 +421,12 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
     const columnsArg = hasWide
       ? `(${colMaxLen.map((l) => (l <= NARROW_THRESHOLD ? "auto" : "1fr")).join(", ")})`
       : `${columnCount}`;
-    return `#table(columns: ${columnsArg}, ${cells.join(", ")})`;
+
+    // table.header, not a plain first row: without it a table spanning pages keeps its header only on the first one. No #figure wrapper, which is a Pandoc habit that centres content; Typst reserves figures for captions and references.
+    const parts = [`columns: ${columnsArg}`];
+    if (headerCells.length > 0) parts.push(`table.header(${headerCells.join(", ")})`);
+    if (bodyCells.length > 0) parts.push(bodyCells.join(", "));
+    return `#table(${parts.join(", ")})`;
   }
 
   // ── Footnotes ───────────────────────────────────────────────────
