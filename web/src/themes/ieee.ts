@@ -9,12 +9,13 @@ import type { Theme } from "./index";
 // The 3.5 in (88.9 mm) columns fall out of the page margins + gutter, so we set the verified gutter and let Typst size the columns.
 //
 // Typography (10 pt Times body, justified, 1-pica indent, numbered headings 12/11/10 pt bold, one blank line before/after) follows the IEEE author kit.
-// Font is "Linux Libertine" — the closest Times-metric serif in the browser Typst font bundle (real Times is not shipped to the WASM compiler).
+// Font is "Libertinus Serif" — the closest Times-metric serif in the browser Typst font bundle (real Times is not shipped to the WASM compiler).
 //
 // `paper` defaults to A4 to match the other themes; switch it to "us-letter" for the canonical IEEE camera-ready size.
 export const ieeeTheme: Theme = {
   id: "ieee",
   name: "IEEE",
+  fonts: { families: ["Libertinus Serif"], assets: ["text"] },
   template: `
 #let conf(
   title: none,
@@ -23,7 +24,7 @@ export const ieeeTheme: Theme = {
   lang: "en",
   toc: false,
   paper: "a4",
-  font: "Linux Libertine",
+  font: "Libertinus Serif",
   fontsize: 10pt,
   doc,
 ) = {
@@ -43,7 +44,7 @@ export const ieeeTheme: Theme = {
   })
   set text(
     lang: lang,
-    font: (font, "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji"),
+    font: font,
     size: fontsize,
   )
   // Body: fully justified, single-spaced, 1-pica (12pt) first-line indent, no blank line between paragraphs — paragraphs are told apart by the indent.
@@ -55,7 +56,7 @@ export const ieeeTheme: Theme = {
   show quote: set text(style: "italic")
 
   // Code — sized down for the narrow column, with wrap breakpoints so long space-less tokens (URLs, IN-lists) break instead of overflowing.
-  show raw: set text(fill: rgb("#116611"), size: 8pt)
+  show raw: set text(fill: rgb("#116611"), size: 0.8em)
   show raw: set block(inset: (left: 1em, top: 0.4em, right: 0.4em, bottom: 0.4em))
   show raw.where(block: true): set par(leading: 0.5em, spacing: 0.5em)
   show raw.where(block: true): it => {

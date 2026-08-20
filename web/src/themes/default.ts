@@ -3,6 +3,7 @@ import type { Theme } from "./index";
 export const defaultTheme: Theme = {
   id: "default",
   name: "Default",
+  fonts: { families: ["Libertinus Serif"], assets: ["text"] },
   template: `
 #let conf(
   title: none,
@@ -10,7 +11,7 @@ export const defaultTheme: Theme = {
   date: none,
   lang: "en",
   toc: false,
-  font: "Linux Libertine",
+  font: "Libertinus Serif",
   fontsize: 12pt,
   doc,
 ) = {
@@ -44,7 +45,7 @@ export const defaultTheme: Theme = {
   // WCAG 1.4.12 also allows letter-spacing (0.12x) and word-spacing (0.16x), but those are left to the reader/browser rather than baked in: forcing them alters the typeface's texture (reads as a font change), and the criterion only requires content to survive a user applying them.
   set text(
     lang: lang,
-    font: (font, "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji"),
+    font: font,
     size: fontsize,
   )
 
@@ -57,7 +58,8 @@ export const defaultTheme: Theme = {
 
   // Code
   show raw: set block(inset: (left: 2em, top: 0.5em, right: 1em, bottom: 0.5em))
-  show raw: set text(fill: rgb("#116611"), size: 9pt)
+  // Relative so code scales with its context; an absolute size renders title code at body size.
+  show raw: set text(fill: rgb("#116611"), size: 0.75em)
   // Code keeps its own tight line spacing instead of the body's 1.5 line-height.
   show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
   // Break long space-less comma runs (numeric IN-lists) so they wrap instead of overflowing; without a break point Typst drops the indent and opens a gap. Trade-off: copied code carries these invisible breaks.
@@ -82,42 +84,36 @@ export const defaultTheme: Theme = {
   show heading.where(level: 1): it => align(left, block(above: 2.8em, below: 1.2em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 22pt)
     #set par(leading: 0.85em)
-    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 2): it => align(left, block(above: 2.6em, below: 1.1em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 17pt)
     #set par(leading: 0.85em)
-    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 3): it => align(left, block(above: 2.4em, below: 1em, width: 100%)[
     #set text(font: font, weight: "semibold", size: 15pt)
     #set par(leading: 0.85em)
-    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 4): it => align(left, block(above: 2.2em, below: 0.9em, width: 100%)[
     #set text(font: font, weight: "bold", size: 13pt)
     #set par(leading: 0.85em)
-    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 5): it => align(left, block(above: 2.2em, below: 0.85em, width: 100%)[
     #set text(font: font, weight: "bold", size: 12pt)
     #set par(leading: 0.85em)
-    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 
   show heading.where(level: 6): it => align(left, block(above: 2.2em, below: 0.85em, width: 100%)[
     #set text(font: font, weight: "regular", style: "italic", size: 12pt)
     #set par(leading: 0.85em)
-    #show raw: set text(size: 1em)
     #block(it.body)
   ])
 

@@ -1,6 +1,6 @@
-import { createCompiler, type TypstCompiler } from "./typst-compiler";
+import { getCompiler, type FontSpec, type TypstCompiler } from "./typst-compiler";
 import { markdownToTypst } from "./pipeline";
-import { getTheme } from "./themes/index";
+import { getTheme, EMOJI_FONT } from "./themes/index";
 import {
   getCustomTemplate,
   setCustomTemplate,
@@ -94,6 +94,15 @@ function resolveTemplate(themeId: string): string {
   return getCustomTemplate(themeId) ?? getTheme(themeId).template;
 }
 
+// The "emoji" asset group is not used: its NotoColorEmoji URL 404s at the pinned typst-dev-assets tag, so the emoji face comes from EMOJI_FONT.url instead.
+function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
+  const { assets, urls = [] } = getTheme(themeId).fonts;
+  return {
+    assets: [...assets],
+    urls: withEmoji ? [...urls, EMOJI_FONT.url] : [...urls],
+  };
+}
+
 function setDirty() {
   unsavedBadge.classList.add("visible");
 }
@@ -167,7 +176,7 @@ async function doCompile() {
         ? getValue(view)
         : resolveTemplate(themeSelect.value);
 
-    const { typstSource, warnings } = markdownToTypst(currentMarkdown, {
+    const { typstSource, warnings, needsEmojiFont } = markdownToTypst(currentMarkdown, {
       themeId: themeSelect.value,
       hardBreaks: hardBreaksToggle.checked,
       templateOverride,
@@ -178,6 +187,7 @@ async function doCompile() {
       setValue(view, typstSource);
     }
 
+    compiler = await getCompiler(fontsFor(themeSelect.value, needsEmojiFont));
     const pdfBytes = await compiler.compile(typstSource);
 
     // Stale job - discard
@@ -320,8 +330,7 @@ wrapLinesToggle.addEventListener("change", () => {
 });
 
 // Dark mode + highlight theme, persisted in localStorage. Each UI mode
-// (dark / light) remembers its own highlight theme so toggling the sun/moon
-// flips both the chrome and the editor to a matching palette.
+// (dark / light) remembers its own highlight theme so toggling the sun/moon flips both the chrome and the editor to a matching palette.
 const DARK_KEY = "typstmd:dark";
 const HIGHLIGHT_DARK_KEY = "typstmd:highlight-dark";
 const HIGHLIGHT_LIGHT_KEY = "typstmd:highlight-light";
@@ -388,8 +397,7 @@ highlightSelect.addEventListener("change", () => {
   if (view) setHighlightTheme(view, themeId);
 });
 
-// Initialize mode first so highlight options + value reflect the right set
-// before the editor view is created.
+// Initialize mode first so highlight options + value reflect the right set before the editor view is created.
 migrateLegacyHighlight();
 const savedDark = localStorage.getItem(DARK_KEY);
 const initialDark =
@@ -464,8 +472,7 @@ async function init() {
 
   updateTemplateUi();
   try {
-    compiler = createCompiler();
-    await compiler.init();
+    compiler = await getCompiler(fontsFor(themeSelect.value, false));
     performance.mark("compiler-ready");
     performance.measure("compiler-total", "init-start", "compiler-ready");
 

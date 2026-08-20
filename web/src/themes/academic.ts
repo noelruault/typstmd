@@ -3,6 +3,7 @@ import type { Theme } from "./index";
 export const academicTheme: Theme = {
   id: "academic",
   name: "Academic",
+  fonts: { families: ["New Computer Modern"], assets: ["text"] },
   template: `
 #let conf(
   title: none,
@@ -41,7 +42,7 @@ export const academicTheme: Theme = {
 
   set text(
     lang: lang,
-    font: (font, "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji"),
+    font: font,
     size: fontsize,
   )
 
@@ -57,7 +58,7 @@ export const academicTheme: Theme = {
     stroke: 0.4pt + luma(220),
     radius: 2pt,
   )
-  show raw: set text(size: 9pt)
+  show raw: set text(size: 0.82em)
   // Code keeps its own tight line spacing instead of the body's loose leading.
   show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
   // Break long space-less comma runs (numeric IN-lists) so they wrap instead of overflowing; without a break point Typst drops the indent and opens a gap. Trade-off: copied code carries these invisible breaks.
@@ -82,42 +83,36 @@ export const academicTheme: Theme = {
   show heading.where(level: 1): it => block(above: 2em, below: 1.2em)[
     #set text(weight: "bold", size: 18pt)
     #set par(leading: 0.4em)
-    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 2): it => block(above: 1.5em, below: 1.1em)[
     #set text(weight: "bold", size: 15pt)
     #set par(leading: 0.4em)
-    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 3): it => block(above: 1.2em, below: 1em)[
     #set text(weight: "semibold", style: "italic", size: 13pt)
     #set par(leading: 0.4em)
-    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 4): it => block(above: 1em, below: 0.9em)[
     #set text(weight: "bold", size: 12pt)
     #set par(leading: 0.4em)
-    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 5): it => block(above: 1em, below: 0.85em)[
     #set text(weight: "bold", size: 11pt)
     #set par(leading: 0.4em)
-    #show raw: set text(size: 1em)
     #it
   ]
 
   show heading.where(level: 6): it => block(above: 1em, below: 0.85em)[
     #set text(weight: "regular", style: "italic", size: 11pt)
     #set par(leading: 0.4em)
-    #show raw: set text(size: 1em)
     #it
   ]
 

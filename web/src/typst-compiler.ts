@@ -14,6 +14,15 @@ export interface TypstCompiler {
   getErrors(): string[];
 }
 
+/** Fonts a compiler instance is built with. Fonts load only in `beforeBuild`, so a
+ * different set means a different instance, which costs a full WASM init. */
+export interface FontSpec {
+  assets: ("text" | "cjk" | "emoji")[];
+  urls: string[];
+}
+
+const DEFAULT_FONTS: FontSpec = { assets: ["text"], urls: [] };
+
 /**
  * URL where the WASM binary is served. Relative so it works under any
  * base path (dev server, GitHub Pages subpath, custom domain).
@@ -42,7 +51,7 @@ function formatDiagnostics(diagnostics: unknown): string[] {
   return [String(diagnostics)];
 }
 
-export function createCompiler(): TypstCompiler {
+export function createCompiler(fonts: FontSpec = DEFAULT_FONTS): TypstCompiler {
   const inner = createTypstCompiler();
   let initialized = false;
   let lastErrors: string[] = [];
@@ -62,7 +71,7 @@ export function createCompiler(): TypstCompiler {
       await inner.init({
         getModule: () => wasmReady,
         beforeBuild: [
-          preloadRemoteFonts([], { assets: ["text"] }),
+          preloadRemoteFonts(fonts.urls, { assets: fonts.assets }),
         ],
       });
       performance.mark("compiler-init-end");
@@ -112,4 +121,22 @@ export function createCompiler(): TypstCompiler {
       return lastErrors;
     },
   };
+}
+
+function fontSignature(fonts: FontSpec): string {
+  return `${[...fonts.assets].sort().join(",")}|${[...fonts.urls].sort().join(",")}`;
+}
+
+const instances = new Map<string, TypstCompiler>();
+
+// getCompiler is called on every compile: each cache miss pays a full WASM init plus font parsing.
+export async function getCompiler(fonts: FontSpec = DEFAULT_FONTS): Promise<TypstCompiler> {
+  const key = fontSignature(fonts);
+  let instance = instances.get(key);
+  if (!instance) {
+    instance = createCompiler(fonts);
+    instances.set(key, instance);
+  }
+  await instance.init();
+  return instance;
 }
