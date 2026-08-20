@@ -3,15 +3,18 @@ plan: typst-parity
 title: Make typstmd (web) match Typst and the Pandoc CLI, and pair the CV templates
 created: 2026-08-18
 owner: @noelruault
-status: approved
+status: executed
 walkthrough:
   last_run: 2026-08-20T15:46:12Z
   completed_at: 2026-08-20T15:46:12Z
 execution:
-  started: null
-  completed: null
+  started: 2026-08-20T17:29:12Z
+  completed: 2026-08-20T17:29:12Z
   prs: []
-branch: typst-pairing
+  branches:
+    - noelruault/typstmd@feature/typst-parity
+    - noelruault/website@feature/typst-parity
+branch: feature/typst-parity
 repos:
   - noelruault/typstmd
   - noelruault/website (resume/)
