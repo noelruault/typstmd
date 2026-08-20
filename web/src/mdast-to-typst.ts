@@ -167,12 +167,8 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
   collectDefinitions(tree, definitionDefs);
 
   // While true, text is rendered inside a table cell, where we mimic
-  // CSS `overflow-wrap: break-word`: Typst only breaks lines at existing
-  // opportunities (spaces), so a long unbreakable token (snake_case
-  // identifier, slash path) overflows its column and collides with the
-  // neighbour. We inject zero-width spaces (U+200B) into long tokens so
-  // Typst can wrap them to fit. ZWSP is not Typst-significant, so it
-  // survives escaping untouched and adds no visible glyph.
+  // CSS `overflow-wrap: break-word`: Typst only breaks lines at existing opportunities (spaces), so a long unbreakable token (snake_case identifier, slash path) overflows its column and collides with the neighbour. We inject zero-width spaces (U+200B) into long tokens so
+  // Typst can wrap them to fit. ZWSP is not Typst-significant, so it survives escaping untouched and adds no visible glyph.
   let inTableCell = false;
 
   function serializeChildren(node: Parent, sep = ""): string {
@@ -203,9 +199,7 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
       case "heading": {
         const h = node as MdastHeading;
-        // Normalize levels 4-6 to 3
-        const depth = Math.min(h.depth, 3);
-        const prefix = "=".repeat(depth);
+        const prefix = "=".repeat(h.depth);
         return `${prefix} ${serializeChildren(h)}`;
       }
 
@@ -262,10 +256,8 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
       case "break":
         return " \\\n";
 
-      // ── Soft break: CommonMark semantics → space ──
-      // remark-parse does not emit "softBreak" nodes by default;
-      // soft breaks appear as spaces in text nodes. But handle it
-      // just in case a plugin emits them.
+      // ── Soft break: CommonMark semantics → space ── remark-parse does not emit "softBreak" nodes by default;
+      // soft breaks appear as spaces in text nodes. But handle it just in case a plugin emits them.
 
       case "table":
         return serializeTable(node as MdastTable);
@@ -331,8 +323,9 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
           return "";
         }
         const preview = html.value.slice(0, 40).replace(/\n/g, " ");
-        warnings.warn("html", `HTML removed: ${preview}`);
-        return escapeText("[HTML block removed]");
+        warnings.warn("html", `HTML tags dropped: ${preview}`);
+        // Keep the text, drop the tags. Inline HTML shares this path, so a placeholder string would land mid-sentence; unrepresentable markup belongs in the warning panel.
+        return escapeText(html.value.replace(/<[^>]*>/g, ""));
       }
 
       default: {
@@ -420,12 +413,7 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
       }
     }
 
-    // Per-column sizing: when any column is wide, every column that can
-    // hold prose becomes 1fr so they share the page width and wrap
-    // together. A single 1fr column would get starved to ~0 width by the
-    // remaining auto columns' long unbreakable tokens and overflow into
-    // its neighbour. Only genuinely short columns (labels, hashes) stay
-    // auto so they don't waste flex width.
+    // Per-column sizing: when any column is wide, every column that can hold prose becomes 1fr so they share the page width and wrap together. A single 1fr column would get starved to ~0 width by the remaining auto columns' long unbreakable tokens and overflow into its neighbour. Only genuinely short columns (labels, hashes) stay auto so they don't waste flex width.
     const WIDE_THRESHOLD = 40;
     const NARROW_THRESHOLD = 12;
     const hasWide = colMaxLen.some((l) => l >= WIDE_THRESHOLD);

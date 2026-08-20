@@ -5,11 +5,8 @@
  * in different contexts. This module exports one function per context.
  */
 
-/**
- * Characters that have special meaning in Typst content/markup mode.
- * Each must be backslash-escaped when appearing as literal text.
- */
-const TEXT_SPECIAL = /[#@$\\*_`<>\[\]]/g;
+// `~` is a Typst non-breaking space: unescaped, a prose tilde is deleted from the PDF.
+const TEXT_SPECIAL = /[#@$\\*_`<>\[\]~]/g;
 
 /**
  * Escape a string for use in Typst content (plain text, content blocks).

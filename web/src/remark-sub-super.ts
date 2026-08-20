@@ -12,8 +12,10 @@ import type { Root, Text, PhrasingContent } from "mdast";
 import type { Plugin } from "unified";
 import { visit } from "unist-util-visit";
 
-const SUB_RE = /~([^\s~][^~]*)~/g;
-const SUPER_RE = /\^([^\s^][^^]*)\^/g;
+// Whitespace inside the delimiters is not markup.
+// `~300 subs at €50/mo (~` must stay prose, not become a subscript that swallows the clause.
+const SUB_RE = /~([^\s~]+)~/g;
+const SUPER_RE = /\^([^\s^]+)\^/g;
 
 const remarkSubSuper: Plugin<[], Root> = function () {
   return (tree: Root) => {
@@ -25,8 +27,7 @@ const remarkSubSuper: Plugin<[], Root> = function () {
       let lastIndex = 0;
       let modified = false;
 
-      // Combined regex to find both ~ and ^ delimited spans
-      const combined = /~([^\s~][^~]*)~|\^([^\s^][^^]*)\^/g;
+      const combined = new RegExp(`${SUB_RE.source}|${SUPER_RE.source}`, "g");
       let match;
 
       while ((match = combined.exec(value)) !== null) {

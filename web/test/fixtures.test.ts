@@ -41,7 +41,8 @@ describe("fixture snapshot tests", () => {
       const expectedTypst = readFileSync(typPath, "utf-8");
 
       const actual = toTypst(mdInput);
-      expect(actual).toBe(expectedTypst);
+      // Trailing newline is editor/formatter noise and Typst is insensitive to it.
+      expect(actual.trimEnd()).toBe(expectedTypst.trimEnd());
     });
   }
 });

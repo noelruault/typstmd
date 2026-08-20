@@ -44,10 +44,10 @@ describe("headings", () => {
     expect(toTypst("### Section")).toBe("=== Section");
   });
 
-  it("normalizes h4-h6 to h3", () => {
-    expect(toTypst("#### Deep")).toBe("=== Deep");
-    expect(toTypst("##### Deeper")).toBe("=== Deeper");
-    expect(toTypst("###### Deepest")).toBe("=== Deepest");
+  it("keeps h4-h6 at their own levels", () => {
+    expect(toTypst("#### Deep")).toBe("==== Deep");
+    expect(toTypst("##### Deeper")).toBe("===== Deeper");
+    expect(toTypst("###### Deepest")).toBe("====== Deepest");
   });
 });
 
@@ -180,6 +180,16 @@ describe("subscript", () => {
   it("renders subscript with #sub", () => {
     expect(toTypst("H~2~O")).toBe("H#sub[2]O");
   });
+
+  it("leaves a tilde pair containing whitespace as prose", () => {
+    expect(toTypst("grew to ~300 subs at €50/mo (~€15k MRR)")).toBe(
+      "grew to \\~300 subs at €50/mo (\\~€15k MRR)",
+    );
+  });
+
+  it("escapes a lone tilde so it survives as a tilde", () => {
+    expect(toTypst("with ~10 years")).toBe("with \\~10 years");
+  });
 });
 
 describe("superscript", () => {
@@ -204,8 +214,14 @@ describe("unsupported nodes", () => {
     expect(w.some((w) => w.nodeType === "html")).toBe(true);
   });
 
-  it("renders HTML placeholder", () => {
-    expect(toTypst("<div>html</div>")).toContain("\\[HTML block removed\\]");
+  it("keeps HTML text content and drops the tags", () => {
+    expect(toTypst("<div>html</div>")).toBe("html");
+  });
+
+  it("never injects placeholder prose, not even inline", () => {
+    const out = toTypst("para with <br> a break and <em>tags</em>.");
+    expect(out).not.toContain("HTML block removed");
+    expect(out).toContain("tags");
   });
 
   it("drops HTML comments silently", () => {
@@ -279,16 +295,14 @@ describe("footnotes", () => {
   });
 
   it("treats missing footnote ref as literal text (parser behavior)", () => {
-    // remark-gfm does not create footnoteReference nodes when no
-    // definition exists, so the syntax stays as literal text.
+    // remark-gfm does not create footnoteReference nodes when no definition exists, so the syntax stays as literal text.
     const result = toTypst("Text[^missing]");
     expect(result).toContain("\\[^missing\\]");
   });
 });
 
 describe("regression: Typst function calls use # prefix", () => {
-  // Guard against the class of bug where a Typst function/variable name
-  // is emitted as a bare identifier (renders as literal text in PDF).
+  // Guard against the class of bug where a Typst function/variable name is emitted as a bare identifier (renders as literal text in PDF).
 
   it("thematic break starts with #", () => {
     const result = toTypst("---");
@@ -316,8 +330,7 @@ describe("regression: Typst function calls use # prefix", () => {
   });
 
   it("no bare identifiers leak as Typst function names", () => {
-    // Compile a document that exercises every node type and check that
-    // known Typst function names only appear prefixed with #.
+    // Compile a document that exercises every node type and check that known Typst function names only appear prefixed with #.
     const md = [
       "# Heading",
       "",
@@ -364,8 +377,7 @@ describe("regression: Typst function calls use # prefix", () => {
       // Find all occurrences and verify each is preceded by #
       const regex = new RegExp(`(?<!#)(?<![a-zA-Z])${fn}(?=\\(|\\[|\\b)`, "g");
       const bareMatches = result.match(regex);
-      // Filter out occurrences inside content blocks [...] or strings
-      // by checking that each match in the output is preceded by #
+      // Filter out occurrences inside content blocks [...] or strings by checking that each match in the output is preceded by #
       // Match function name only when followed by ( or [ (actual function call syntax)
       const allOccurrences = [...result.matchAll(new RegExp(`${fn}(?=[\\(\\[])`, "g"))];
       for (const match of allOccurrences) {
