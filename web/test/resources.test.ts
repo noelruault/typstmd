@@ -39,7 +39,7 @@ describe("image fetching", () => {
       // PNG magic, so the extension is sniffed rather than taken from the url.
       const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
       return new Response(bytes, { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     try {
       const first = await fetchImages([url]);
@@ -57,7 +57,7 @@ describe("image fetching", () => {
     const original = globalThis.fetch;
     globalThis.fetch = (async () => {
       throw new TypeError("Failed to fetch");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     try {
       const result = await fetchImages([url]);
@@ -70,7 +70,7 @@ describe("image fetching", () => {
   it("rejects bytes it cannot identify, since Typst decodes by extension", async () => {
     const url = "https://weird.test/pic.png";
     const original = globalThis.fetch;
-    globalThis.fetch = (async () => new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 })) as typeof fetch;
+    globalThis.fetch = (async () => new Response(new Uint8Array([1, 2, 3, 4]), { status: 200 })) as unknown as typeof fetch;
 
     try {
       const result = await fetchImages([url]);

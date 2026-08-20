@@ -96,6 +96,9 @@ function run(): number {
   }
 
   const update = process.argv.includes("--update");
+  // Report mode never fails: absolute timings are machine-specific, so a committed baseline
+  // from one machine cannot gate another.
+  const reportOnly = process.argv.includes("--report");
   const tmpDir = mkdtempSync(join(tmpdir(), "typstmd-bench-"));
   const results: Results = {};
 
@@ -145,7 +148,7 @@ function run(): number {
   if (regressions.length > 0) {
     console.error(`\n${regressions.length} regression(s) over budget (compile ${BUDGET.compile}x, transform ${BUDGET.transform}x):`);
     regressions.forEach((r) => console.error(`  ${r}`));
-    return 1;
+    return reportOnly ? 0 : 1;
   }
 
   console.log("\nno regressions over budget");

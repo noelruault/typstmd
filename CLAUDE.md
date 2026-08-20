@@ -30,14 +30,23 @@ bunx tsc --noEmit    # typecheck
 
 No linters. CLI has no tests.
 
-## Visual testing (web)
+## Test layers (web)
 
-Unit tests assert the generated Typst *string*; they cannot catch
-layout bugs (column overlap, text overflowing a cell, table running off
-the page). Those only show up in the rendered PDF. **When changing
-anything that affects rendered layout — table sizing, cell wrapping,
-spacing, theme templates — also verify visually, don't rely on
-`bun test` alone.**
+Four layers, and the last two exist because the first two cannot see a rendered page:
+
+| Layer | File | Catches |
+| --- | --- | --- |
+| Emitted string | `mdast-to-typst.test.ts`, `fixtures/`, `template-assembly.test.ts` | wrong Typst |
+| CLI/web parity | `parity.test.ts` | the two front-ends drifting apart. Sanctioned divergences are asserted in that file, not waved away. Needs `pandoc` |
+| Rendered PDF | `render.test.ts` | deleted text, a title at body size, a missing font, a table losing its header. Uses `typst` + `pdftotext`/`pdffonts` and `--ignore-system-fonts` so the font set matches the browser |
+| Compile time | `bench-compile.ts` | a change doubling what users wait for. `bun run bench` gates locally against `perf-baseline.json`; `bun run bench:update` re-records it |
+
+A green `bun test` was never enough on its own: every defect the parity work fixed passed the
+string layer. CI installs pinned `typst`, `pandoc` and poppler so no layer can silently skip.
+
+Visual fixtures remain for what no assertion covers, i.e. whether a page *looks* right.
+**When changing anything that affects rendered layout, table sizing, cell wrapping, spacing or
+theme templates, eyeball a fixture too.**
 
 Visual fixtures live in `web/test/visuals/*.md`. Each file collects
 markdown cases that target specific layout failure modes (e.g.
