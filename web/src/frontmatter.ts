@@ -10,7 +10,7 @@
  */
 
 import { parse as parseYaml } from "yaml";
-import { escapeText } from "./typst-escape";
+import { escapeText, escapeUrl } from "./typst-escape";
 import type { Node, Parent } from "unist";
 
 export interface Metadata {
@@ -19,6 +19,8 @@ export interface Metadata {
   date?: string;
   lang?: string;
   toc?: boolean;
+  /** Every key the document declared, including ones typstmd assigns no meaning to. */
+  all?: Record<string, unknown>;
 }
 
 /**
@@ -73,7 +75,66 @@ function normalizeMetadata(raw: Record<string, unknown>): Metadata {
     meta.toc = raw.toc;
   }
 
+  meta.all = raw;
+
   return meta;
+}
+
+/** Document properties for templates that expose no `conf` to receive them. */
+export function encodeDocumentSet(meta: Metadata): string {
+  const args: string[] = [];
+  if (meta.title) args.push(`title: [${escapeText(meta.title)}]`);
+  if (meta.author && meta.author.length > 0) {
+    const authors = (Array.isArray(meta.author) ? meta.author : [meta.author])
+      .map((name) => `[${escapeText(name)}]`)
+      .join(", ");
+    args.push(`author: (${authors},)`);
+  }
+  return args.length > 0 ? `#set document(${args.join(", ")})` : "";
+}
+
+// Values are passed through, never acted on; interpreting styling keys here would make typstmd a style engine instead of a converter.
+export function encodeFrontmatterDict(meta: Metadata): string {
+  const raw = meta.all;
+  if (!raw || Object.keys(raw).length === 0) return "";
+
+  const entries = Object.entries(raw)
+    .map(([key, value]) => {
+      const encoded = encodeValue(value);
+      return encoded === undefined ? undefined : `  ${encodeKey(key)}: ${encoded},`;
+    })
+    .filter((line): line is string => line !== undefined);
+
+  if (entries.length === 0) return "";
+  return `#let frontmatter = (\n${entries.join("\n")}\n)`;
+}
+
+/** Typst identifiers allow hyphens but not every YAML key shape, so quote what cannot be bare. */
+function encodeKey(key: string): string {
+  return /^[A-Za-z][A-Za-z0-9-]*$/.test(key) ? key : `"${escapeUrl(key)}"`;
+}
+
+function encodeValue(value: unknown): string | undefined {
+  if (value === null || value === undefined) return "none";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
+  if (typeof value === "string") return `[${escapeText(value)}]`;
+  if (value instanceof Date) return `[${escapeText(value.toISOString().slice(0, 10))}]`;
+  if (Array.isArray(value)) {
+    const items = value.map(encodeValue).filter((v): v is string => v !== undefined);
+    // Trailing comma: a one-element Typst array without it is just a parenthesised value.
+    return `(${items.join(", ")}${items.length === 1 ? "," : ""})`;
+  }
+  if (typeof value === "object") {
+    const inner = Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => {
+        const encoded = encodeValue(v);
+        return encoded === undefined ? undefined : `${encodeKey(k)}: ${encoded}`;
+      })
+      .filter((v): v is string => v !== undefined);
+    return inner.length > 0 ? `(${inner.join(", ")})` : "(:)";
+  }
+  return undefined;
 }
 
 /**

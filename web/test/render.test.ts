@@ -102,6 +102,21 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     expect(inHeading.height / inBody.height).toBeGreaterThan(1.5);
   });
 
+  it("compiles a raw Typst template that defines no conf", () => {
+    const { typstSource } = markdownToTypst("---\ntitle: Raw\n---\n\n= Heading\n\nBody text.\n", {
+      templateOverride: '#set page(paper: "a4")\n#set text(font: "Libertinus Serif", size: 11pt)',
+    });
+    const srcPath = join(tmpDir, "raw-template.typ");
+    const pdfPath = join(tmpDir, "raw-template.pdf");
+    writeFileSync(srcPath, typstSource, "utf-8");
+    const proc = spawnSync("typst", ["compile", "--ignore-system-fonts", srcPath, pdfPath], {
+      encoding: "utf-8",
+    });
+    expect(proc.status).toBe(0);
+    expect(proc.stderr).not.toContain("unknown variable");
+    expect(execFileSync("pdftotext", [pdfPath, "-"], { stdio: "pipe" }).toString()).toContain("Body text.");
+  });
+
   it("repeats a table header on every page it spans", () => {
     const rows = Array.from({ length: 90 }, (_, i) => `| Key ${i} | Value ${i} |`).join("\n");
     const md = `| Column | Description |\n|---|---|\n${rows}\n`;

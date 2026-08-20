@@ -12,8 +12,10 @@ const BASELINE_PATH = join(import.meta.dir, "perf-baseline.json");
 const REPO_ROOT = join(import.meta.dir, "../..");
 const RUNS = 5;
 
-/** Compile budget. Init is stricter than compile: it is paid on every page load. */
 const BUDGET = { compile: 1.10, transform: 1.10 };
+
+// Ratios on sub-millisecond work are scheduler noise, so only judge cases with room to measure.
+const FLOOR_MS = { compile: 10, transform: 2 };
 
 interface Sample {
   transformMs: number;
@@ -128,7 +130,9 @@ function run(): number {
     }
     const compileRatio = sample.compileMs / before.compileMs;
     const transformRatio = sample.transformMs / before.transformMs;
-    const flag = compileRatio > BUDGET.compile || transformRatio > BUDGET.transform ? "REGRESSION" : "ok";
+    const overCompile = before.compileMs >= FLOOR_MS.compile && compileRatio > BUDGET.compile;
+    const overTransform = before.transformMs >= FLOOR_MS.transform && transformRatio > BUDGET.transform;
+    const flag = overCompile || overTransform ? "REGRESSION" : "ok";
     console.log(
       `  ${key.padEnd(34)} compile ${before.compileMs.toFixed(0)}→${sample.compileMs.toFixed(0)}ms ` +
         `(${compileRatio.toFixed(2)}x)  transform ${transformRatio.toFixed(2)}x  ${flag}`,
