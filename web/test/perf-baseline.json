@@ -1,82 +1,82 @@
 {
   "example @ default": {
-    "transformMs": 6.3729170000000295,
-    "compileMs": 69.27087500000016
+    "transformMs": 3.54495799999998,
+    "compileMs": 49.65641700000003
   },
   "example @ minimal": {
-    "transformMs": 4.848375000000033,
-    "compileMs": 61.26087499999994
+    "transformMs": 2.7519999999999527,
+    "compileMs": 48.45662500000003
   },
   "example @ academic": {
-    "transformMs": 3.1514589999999316,
-    "compileMs": 63.72312500000021
+    "transformMs": 2.61683400000004,
+    "compileMs": 55.04904099999999
   },
   "example @ ieee": {
-    "transformMs": 4.96133299999974,
-    "compileMs": 70.54349999999977
+    "transformMs": 2.5072500000001128,
+    "compileMs": 55.70270800000003
   },
   "visual:headings @ default": {
-    "transformMs": 0.7060839999999189,
-    "compileMs": 23.31854099999964
+    "transformMs": 0.49358299999994415,
+    "compileMs": 14.727457999999842
   },
   "visual:headings @ minimal": {
-    "transformMs": 0.565708000000086,
-    "compileMs": 18.89975000000004
+    "transformMs": 0.5080000000000382,
+    "compileMs": 11.07270799999992
   },
   "visual:headings @ academic": {
-    "transformMs": 0.8110419999998157,
-    "compileMs": 16.00937500000009
+    "transformMs": 0.47420899999997346,
+    "compileMs": 12.083999999999833
   },
   "visual:headings @ ieee": {
-    "transformMs": 0.5386249999996835,
-    "compileMs": 20.644874999999956
+    "transformMs": 0.4446250000000873,
+    "compileMs": 16.017041999999947
   },
   "visual:tables @ default": {
-    "transformMs": 3.552832999999737,
-    "compileMs": 25.721292000000176
+    "transformMs": 2.0474169999997684,
+    "compileMs": 19.643750000000182
   },
   "visual:tables @ minimal": {
-    "transformMs": 2.8147919999996702,
-    "compileMs": 27.585042000000158
+    "transformMs": 2.0189170000003287,
+    "compileMs": 19.928750000000036
   },
   "visual:tables @ academic": {
-    "transformMs": 2.5876250000001164,
-    "compileMs": 25.799666999999772
+    "transformMs": 2.005666999999903,
+    "compileMs": 22.329749999999876
   },
   "visual:tables @ ieee": {
-    "transformMs": 2.6276660000003176,
-    "compileMs": 28.271041999999852
+    "transformMs": 1.9326249999999163,
+    "compileMs": 19.11566700000003
   },
   "visual:code-blocks @ default": {
-    "transformMs": 0.4365419999999176,
-    "compileMs": 33.02945899999986
+    "transformMs": 0.38308399999959875,
+    "compileMs": 25.54162499999984
   },
   "visual:code-blocks @ minimal": {
-    "transformMs": 0.49866700000029596,
-    "compileMs": 34.059291999999914
+    "transformMs": 0.41449999999986176,
+    "compileMs": 25.640750000000025
   },
   "visual:code-blocks @ academic": {
-    "transformMs": 0.7608749999999418,
-    "compileMs": 34.39166599999999
+    "transformMs": 0.3579580000000533,
+    "compileMs": 29.07320800000025
   },
   "visual:code-blocks @ ieee": {
-    "transformMs": 0.5258750000002692,
-    "compileMs": 33.520290999999816
+    "transformMs": 0.3789999999999054,
+    "compileMs": 28.482750000000124
   },
   "synthetic:150-entries @ default": {
-    "transformMs": 23.20258399999966,
-    "compileMs": 61.66320799999994
+    "transformMs": 21.103375000000142,
+    "compileMs": 52.19825000000037
   },
   "synthetic:150-entries @ minimal": {
-    "transformMs": 23.273833000000195,
-    "compileMs": 60.16679199999999
+    "transformMs": 18.34704199999942,
+    "compileMs": 60.14179100000001
   },
   "synthetic:150-entries @ academic": {
-    "transformMs": 21.736499999999978,
-    "compileMs": 90.72729100000015
+    "transformMs": 18.93341600000076,
+    "compileMs": 90.10483300000033
   },
   "synthetic:150-entries @ ieee": {
-    "transformMs": 21.274000000000342,
-    "compileMs": 83.13724999999977
+    "transformMs": 18.788832999999613,
+    "compileMs": 82.56204100000014
   }
 }

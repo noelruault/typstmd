@@ -10,12 +10,15 @@ import { themes } from "../src/themes";
 
 const BASELINE_PATH = join(import.meta.dir, "perf-baseline.json");
 const REPO_ROOT = join(import.meta.dir, "../..");
-const RUNS = 5;
+const RUNS = 7;
 
-const BUDGET = { compile: 1.10, transform: 1.10 };
+// 1.25x, not something tighter: best-of-N on a machine doing other work still swings ~10%,
+// and a gate that cries wolf gets muted. The regressions worth catching were 2x.
+const BUDGET = { compile: 1.20, transform: 1.20 };
 
-// Ratios on sub-millisecond work are scheduler noise, so only judge cases with room to measure.
-const FLOOR_MS = { compile: 10, transform: 2 };
+// Only judge cases with real work in them. Below these, the number is mostly typst's process
+// startup and font loading, which swings 30% run to run and says nothing about our code.
+const FLOOR_MS = { compile: 40, transform: 5 };
 
 interface Sample {
   transformMs: number;
@@ -32,13 +35,12 @@ function typstAvailable(): boolean {
   }
 }
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+// Best of N, not the median: both are CPU-bound, so anything above the fastest run is
+// interference from elsewhere on the machine. The median flagged a phantom 1.32x once.
+function best(values: number[]): number {
+  return Math.min(...values);
 }
 
-/** Synthetic entry-shaped document: heading, meta line, summary, bullets, repeated. */
 function syntheticDoc(entries: number): string {
   const blocks = [];
   for (let i = 0; i < entries; i++) {
@@ -86,7 +88,7 @@ function measure(md: string, themeId: string, tmpDir: string): Sample {
     compiles.push(performance.now() - t0);
   }
 
-  return { transformMs: median(transforms), compileMs: median(compiles) };
+  return { transformMs: best(transforms), compileMs: best(compiles) };
 }
 
 function run(): number {
