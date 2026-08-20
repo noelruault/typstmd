@@ -1,0 +1,82 @@
+{
+  "example @ default": {
+    "transformMs": 6.3729170000000295,
+    "compileMs": 69.27087500000016
+  },
+  "example @ minimal": {
+    "transformMs": 4.848375000000033,
+    "compileMs": 61.26087499999994
+  },
+  "example @ academic": {
+    "transformMs": 3.1514589999999316,
+    "compileMs": 63.72312500000021
+  },
+  "example @ ieee": {
+    "transformMs": 4.96133299999974,
+    "compileMs": 70.54349999999977
+  },
+  "visual:headings @ default": {
+    "transformMs": 0.7060839999999189,
+    "compileMs": 23.31854099999964
+  },
+  "visual:headings @ minimal": {
+    "transformMs": 0.565708000000086,
+    "compileMs": 18.89975000000004
+  },
+  "visual:headings @ academic": {
+    "transformMs": 0.8110419999998157,
+    "compileMs": 16.00937500000009
+  },
+  "visual:headings @ ieee": {
+    "transformMs": 0.5386249999996835,
+    "compileMs": 20.644874999999956
+  },
+  "visual:tables @ default": {
+    "transformMs": 3.552832999999737,
+    "compileMs": 25.721292000000176
+  },
+  "visual:tables @ minimal": {
+    "transformMs": 2.8147919999996702,
+    "compileMs": 27.585042000000158
+  },
+  "visual:tables @ academic": {
+    "transformMs": 2.5876250000001164,
+    "compileMs": 25.799666999999772
+  },
+  "visual:tables @ ieee": {
+    "transformMs": 2.6276660000003176,
+    "compileMs": 28.271041999999852
+  },
+  "visual:code-blocks @ default": {
+    "transformMs": 0.4365419999999176,
+    "compileMs": 33.02945899999986
+  },
+  "visual:code-blocks @ minimal": {
+    "transformMs": 0.49866700000029596,
+    "compileMs": 34.059291999999914
+  },
+  "visual:code-blocks @ academic": {
+    "transformMs": 0.7608749999999418,
+    "compileMs": 34.39166599999999
+  },
+  "visual:code-blocks @ ieee": {
+    "transformMs": 0.5258750000002692,
+    "compileMs": 33.520290999999816
+  },
+  "synthetic:150-entries @ default": {
+    "transformMs": 23.20258399999966,
+    "compileMs": 61.66320799999994
+  },
+  "synthetic:150-entries @ minimal": {
+    "transformMs": 23.273833000000195,
+    "compileMs": 60.16679199999999
+  },
+  "synthetic:150-entries @ academic": {
+    "transformMs": 21.736499999999978,
+    "compileMs": 90.72729100000015
+  },
+  "synthetic:150-entries @ ieee": {
+    "transformMs": 21.274000000000342,
+    "compileMs": 83.13724999999977
+  }
+}

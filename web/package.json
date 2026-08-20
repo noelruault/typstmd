@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "bun run src/dev-server.ts --watch",
     "build": "bun run build.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "bench": "bun run test/bench-compile.ts",
+    "bench:update": "bun run test/bench-compile.ts --update"
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.5.0",
