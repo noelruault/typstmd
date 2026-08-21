@@ -129,7 +129,7 @@ Linear, self-contained:
 1. `cmd/converter.sh`: entry point. Validates deps, parses `--mermaid`, invokes Pandoc with a **pinned reader dialect** (`READER_DIALECT`) that mirrors the web's remark plugin set. Bare `markdown` would grant ~40 extensions the web has never had; `smart` must stay on or the CLI escapes `--` and `"` that the web leaves for Typst.
 2. Pandoc applies:
    - `cmd/filters/table.lua`: emits the same `#table(columns: …, table.header(…), …)` shape as `serializeTable` in the web serializer, including the same column-width heuristic. Keep the two in sync; a table split across pages loses its header without `table.header`.
-   - Optional: `mermaid-filter` (npm) renders Mermaid code blocks to PNG.
+   - Optional: `mermaid-filter` (npm) renders Mermaid code blocks to PNG. **This is the only thing that makes the two front-ends disagree**, and it is opt-in: without the flag, a ` ```mermaid ` block prints its source as a raw block, byte-identically on both sides, which `parity.test.ts` pins. Rendering it in the browser would need mermaid.js plus the image pipeline, and the resulting PDF would carry a picture rather than Typst content, so the same Markdown would not reproduce the diagram in the upstream compiler.
    - `templates/md-template.typ`: Typst template for all PDF styling (A4, Libertinus Serif 12pt, headers/footers, code/quote/table). Pandoc template with `$variable$` interpolation, not pure Typst.
 3. Typst (as Pandoc `--pdf-engine`) compiles to PDF.
 

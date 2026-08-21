@@ -84,6 +84,12 @@ const CASES: { name: string; markdown: string }[] = [
   { name: "emoji shortcode", markdown: "shipping :rocket: today" },
   { name: "bullet list", markdown: "- one\n- two\n- three" },
   { name: "blockquote", markdown: "> quoted line" },
+  {
+    // Both front-ends print the source as a raw block. The CLI's opt-in --mermaid flag renders
+    // it to a PNG instead, which is the one place the two deliberately differ.
+    name: "mermaid block",
+    markdown: '```mermaid\nxychart-beta\n  bar [2, 1, 3]\n```',
+  },
 ];
 
 describe.if(pandocAvailable())("CLI and web agree", () => {

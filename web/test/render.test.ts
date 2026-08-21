@@ -157,6 +157,14 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     expect(Math.max(...rightEdges)).toBeLessThan(160);
   });
 
+  it("prints a mermaid block as its source rather than dropping it", () => {
+    const { text } = render('Before.\n\n```mermaid\nxychart-beta\n  bar [2, 1, 3]\n```\n\nAfter.\n');
+    // Neither front-end renders the diagram by default, so the source has to survive.
+    expect(text).toContain("xychart-beta");
+    expect(text).toContain("Before.");
+    expect(text).toContain("After.");
+  });
+
   it("repeats a table header on every page it spans", () => {
     const rows = Array.from({ length: 90 }, (_, i) => `| Key ${i} | Value ${i} |`).join("\n");
     const md = `| Column | Description |\n|---|---|\n${rows}\n`;
