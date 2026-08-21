@@ -85,6 +85,17 @@ describe("inline code", () => {
   });
 });
 
+describe("inline code in a table cell", () => {
+  it("carries break opportunities, which a third-party template cannot add for it", () => {
+    const out = toTypst("| a | b |\n|---|---|\n| x | `xmldev.dotwconnect.com` |\n");
+    expect(out).toContain("`xmldev.\u200Bdotwconnect.\u200Bcom`");
+  });
+
+  it("leaves code outside a table untouched, where there is room to run", () => {
+    expect(toTypst("see `xmldev.dotwconnect.com` there")).toBe("see `xmldev.dotwconnect.com` there");
+  });
+});
+
 describe("code blocks", () => {
   it("renders fenced code block", () => {
     expect(toTypst("```\nhello\n```")).toBe("```\nhello\n```");

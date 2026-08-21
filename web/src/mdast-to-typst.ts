@@ -231,8 +231,8 @@ export function mdastToTypst(tree: Node, options: SerializeOptions): string {
 
       case "inlineCode": {
         const c = node as MdastInlineCode;
-        // Use raw backtick passthrough: no escaping inside code
-        return `\`${c.value}\``;
+        // Breaks belong in the content, not a theme's show rule, which a third-party template does not have: unbreakable code in a narrow cell prints over the next column.
+        return `\`${inTableCell ? breakLongTokens(c.value) : c.value}\``;
       }
 
       case "code": {

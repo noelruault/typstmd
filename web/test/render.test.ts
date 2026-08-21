@@ -119,6 +119,24 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     expect(execFileSync("pdftotext", [pdfPath, "-"], { stdio: "pipe" }).toString()).toContain("Body text.");
   });
 
+  it("gives a table cell's inline code somewhere to break in a narrow column", () => {
+    // A third-party template has no ZWSP show rule of its own, so the break opportunities have
+    // to be in the content. Measured on this page at 95pt columns: the widest word is 193pt
+    // without the breaks and 139pt with them, so the threshold sits between the two.
+    const md = "| | |\n|---|---|\n| **Document type / version** | Report v1.26 |\n| **Targets** | extranet (`xmldev.dotwconnect.com`) |\n";
+    const { typstSource } = markdownToTypst(md, {
+      templateOverride: '#set page(width: 9cm, height: 12cm, margin: 1cm, columns: 2)\n#set text(font: "Libertinus Serif", size: 10pt)',
+    });
+    const srcPath = join(tmpDir, "narrow-column.typ");
+    const pdfPath = join(tmpDir, "narrow-column.pdf");
+    writeFileSync(srcPath, typstSource, "utf-8");
+    expect(spawnSync("typst", ["compile", "--ignore-system-fonts", srcPath, pdfPath], { encoding: "utf-8" }).status).toBe(0);
+
+    const bbox = execFileSync("pdftotext", ["-bbox", "-f", "1", "-l", "1", pdfPath, "-"], { stdio: "pipe" }).toString();
+    const rightEdges = [...bbox.matchAll(/xMax="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(Math.max(...rightEdges)).toBeLessThan(160);
+  });
+
   it("repeats a table header on every page it spans", () => {
     const rows = Array.from({ length: 90 }, (_, i) => `| Key ${i} | Value ${i} |`).join("\n");
     const md = `| Column | Description |\n|---|---|\n${rows}\n`;
