@@ -2,6 +2,14 @@ import { getCompiler, type FontSpec, type TypstCompiler } from "./typst-compiler
 import { markdownToTypst } from "./pipeline";
 import { getTheme, themes, EMOJI_FONT } from "./themes/index";
 import { starters, getStarter } from "./starters";
+import {
+  formatSelection,
+  fontThemeId,
+  parseSelection,
+  pristineSource,
+  resolveTemplateSource,
+  type SelectionSources,
+} from "./template-selection";
 import { classifyDroppedFile } from "./dropped-file";
 import {
   listUserTemplates,
@@ -50,6 +58,7 @@ _Phase 2 - markdown pipeline works._
 `;
 
 const AUTOSAVE_KEY = "typstmd:autosave";
+const SELECTION_KEY = "typstmd:template-selection";
 
 type ViewMode = "editor" | "source" | "template";
 
@@ -61,7 +70,6 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let lastTypstSource = "";
 let viewMode: ViewMode = "editor";
-let previousThemeId = "default";
 
 const unsavedBadge = document.getElementById("unsaved-badge") as HTMLSpanElement;
 const editorHost = document.getElementById("editor-host") as HTMLDivElement;
@@ -75,11 +83,8 @@ const templateToggle = document.getElementById(
 const resetTemplateBtn = document.getElementById(
   "reset-template",
 ) as HTMLButtonElement;
-const themeSelect = document.getElementById(
-  "theme-select",
-) as HTMLSelectElement;
-const starterSelect = document.getElementById(
-  "starter-select",
+const templateSelect = document.getElementById(
+  "template-select",
 ) as HTMLSelectElement;
 const templateFileInput = document.getElementById(
   "template-file",
@@ -105,8 +110,20 @@ const highlightSelect = document.getElementById(
 const savedMarkdown = localStorage.getItem(AUTOSAVE_KEY);
 let currentMarkdown = savedMarkdown ?? DEFAULT_MARKDOWN.trim();
 
-function resolveTemplate(themeId: string): string {
-  return getCustomTemplate(themeId) ?? getTheme(themeId).template;
+const templateSources: SelectionSources = {
+  themeTemplate: (id) => themes.find((t) => t.id === id)?.template,
+  starterPreamble: (id) => getStarter(id)?.preamble,
+  userTemplate: (name) => getUserTemplate(name),
+  override: (key) => getCustomTemplate(key),
+};
+
+function activeSelection(): string {
+  return templateSelect.value || formatSelection({ kind: "theme", id: "default" });
+}
+
+/** The source that a compile uses when the Template view is not being edited. */
+function resolveActiveTemplate(): string {
+  return resolveTemplateSource(activeSelection(), templateSources) ?? getTheme("default").template;
 }
 
 /** Files the user dropped on the page, keyed by the path their Markdown refers to. */
@@ -189,7 +206,7 @@ function updateTemplateUi() {
   viewToggle.disabled = viewMode === "template";
   templateToggle.disabled = viewMode === "source";
 
-  if (viewMode === "template" && hasCustomTemplate(themeSelect.value)) {
+  if (viewMode === "template" && hasCustomTemplate(activeSelection())) {
     resetTemplateBtn.classList.add("visible");
   } else {
     resetTemplateBtn.classList.remove("visible");
@@ -211,14 +228,14 @@ async function doCompile() {
     const templateOverride =
       viewMode === "template"
         ? getValue(view)
-        : resolveTemplate(themeSelect.value);
+        : resolveActiveTemplate();
 
     // Resources are fetched before serializing: image paths must be known while the body is built, and both caches are keyed by URL so typing does not refetch anything.
     const assets = await resolveAssets(currentMarkdown);
     await fetchPackages(scanPackageSpecs(templateOverride));
 
     const { typstSource, warnings, needsEmojiFont } = markdownToTypst(currentMarkdown, {
-      themeId: themeSelect.value,
+      themeId: fontThemeId(activeSelection()),
       hardBreaks: hardBreaksToggle.checked,
       templateOverride,
       assets: assets.paths,
@@ -229,7 +246,7 @@ async function doCompile() {
       setValue(view, typstSource);
     }
 
-    compiler = await getCompiler(fontsFor(themeSelect.value, needsEmojiFont));
+    compiler = await getCompiler(fontsFor(fontThemeId(activeSelection()), needsEmojiFont));
     compiler.mapAssets(assets.files);
     const pdfBytes = await compiler.compile(typstSource);
 
@@ -238,7 +255,7 @@ async function doCompile() {
 
     // Persist template only on successful compile
     if (viewMode === "template") {
-      setCustomTemplate(themeSelect.value, getValue(view));
+      setCustomTemplate(activeSelection(), getValue(view));
       updateTemplateUi();
     }
 
@@ -303,19 +320,8 @@ function exitTemplateMode() {
 }
 
 function enterTemplateMode() {
-  setValue(view, resolveTemplate(themeSelect.value));
+  setValue(view, resolveActiveTemplate());
   setReadOnly(view, false);
-}
-
-function populateThemeOptions() {
-  themeSelect.replaceChildren(
-    ...themes.map((theme) => {
-      const opt = document.createElement("option");
-      opt.value = theme.id;
-      opt.textContent = theme.name;
-      return opt;
-    }),
-  );
 }
 
 function option(value: string, label: string): HTMLOptionElement {
@@ -325,24 +331,57 @@ function option(value: string, label: string): HTMLOptionElement {
   return opt;
 }
 
-function populateStarterOptions() {
-  const placeholder = option("", "Template…");
+function group(label: string, options: HTMLOptionElement[]): HTMLOptGroupElement {
+  const grp = document.createElement("optgroup");
+  grp.label = label;
+  grp.append(...options);
+  return grp;
+}
 
-  const universe = document.createElement("optgroup");
-  universe.label = "Typst Universe";
-  universe.append(...starters.map((s) => option(`starter:${s.id}`, s.name)));
-
-  const children: (HTMLOptionElement | HTMLOptGroupElement)[] = [placeholder, universe];
+/** Themes, Universe packages and brought-in files are all just templates, so one picker. */
+function populateTemplateOptions() {
+  const groups = [
+    group(
+      "Themes",
+      themes.map((theme) => option(formatSelection({ kind: "theme", id: theme.id }), theme.name)),
+    ),
+    group(
+      "Typst Universe",
+      starters.map((starter) => option(formatSelection({ kind: "starter", id: starter.id }), starter.name)),
+    ),
+  ];
 
   const mine = listUserTemplates();
   if (mine.length > 0) {
-    const group = document.createElement("optgroup");
-    group.label = "Yours";
-    group.append(...mine.map((name) => option(`user:${name}`, name)));
-    children.push(group);
+    groups.push(
+      group(
+        "Yours",
+        mine.map((name) => option(formatSelection({ kind: "user", id: name }), name)),
+      ),
+    );
   }
 
-  starterSelect.replaceChildren(...children);
+  const previous = templateSelect.value;
+  templateSelect.replaceChildren(...groups);
+
+  const wanted = previous || localStorage.getItem(SELECTION_KEY) || "";
+  const available = [...templateSelect.options].some((opt) => opt.value === wanted);
+  templateSelect.value = available ? wanted : formatSelection({ kind: "theme", id: "default" });
+}
+
+/**
+ * Custom templates used to be stored per theme id. Without this, a user who had edited one
+ * loses that edit the first time they load the unified picker.
+ */
+function migrateLegacyTemplateKeys() {
+  for (const theme of themes) {
+    const legacy = getCustomTemplate(theme.id);
+    const key = formatSelection({ kind: "theme", id: theme.id });
+    if (legacy !== null && getCustomTemplate(key) === null) {
+      setCustomTemplate(key, legacy);
+      clearCustomTemplate(theme.id);
+    }
+  }
 }
 
 /** Any Typst source can be the template: a theme, a Universe preamble, or a user's own file. */
@@ -353,21 +392,16 @@ function loadTemplateSource(label: string, source: string) {
   doCompile();
 }
 
-function loadStarter(id: string) {
-  const starter = getStarter(id);
-  if (!starter) return;
-  loadTemplateSource(`${starter.name}, fetching @preview/${starter.spec}`, starter.preamble);
-}
-
-/** Saves a brought-in template under its filename so it survives a reload, then loads it. */
+/** Saves a brought-in template under its filename, selects it, and shows it for editing. */
 function adoptTemplateFile(name: string, source: string) {
-  if (hasUserTemplate(name) && !confirm(`Replace the saved template "${name}"?`)) {
-    loadTemplateSource(`${name} (not saved)`, source);
-    return;
+  const save = !hasUserTemplate(name) || confirm(`Replace the saved template "${name}"?`);
+  if (save) {
+    saveUserTemplate(name, source);
+    populateTemplateOptions();
+    templateSelect.value = formatSelection({ kind: "user", id: name });
+    localStorage.setItem(SELECTION_KEY, templateSelect.value);
   }
-  saveUserTemplate(name, source);
-  populateStarterOptions();
-  loadTemplateSource(name, source);
+  loadTemplateSource(save ? name : `${name} (not saved)`, source);
 }
 
 function setViewMode(mode: ViewMode) {
@@ -415,30 +449,20 @@ viewToggle.addEventListener("click", () => setViewMode("source"));
 templateToggle.addEventListener("click", () => setViewMode("template"));
 
 resetTemplateBtn.addEventListener("click", () => {
-  clearCustomTemplate(themeSelect.value);
-  setValue(view, getTheme(themeSelect.value).template);
+  const value = activeSelection();
+  clearCustomTemplate(value);
+  const selection = parseSelection(value);
+  const pristine = selection ? pristineSource(selection, templateSources) : null;
+  setValue(view, pristine ?? getTheme("default").template);
   updateTemplateUi();
   doCompile();
 });
 
-starterSelect.addEventListener("change", () => {
-  const value = starterSelect.value;
-  // Reset to the placeholder: loading a template is a one-shot action, not a mode.
-  starterSelect.value = "";
-  if (value.startsWith("starter:")) {
-    loadStarter(value.slice("starter:".length));
-  } else if (value.startsWith("user:")) {
-    const name = value.slice("user:".length);
-    const source = getUserTemplate(name);
-    if (source !== null) loadTemplateSource(name, source);
-  }
-});
-
-themeSelect.addEventListener("change", () => {
+templateSelect.addEventListener("change", () => {
+  localStorage.setItem(SELECTION_KEY, activeSelection());
   if (viewMode === "template") {
-    setValue(view, resolveTemplate(themeSelect.value));
+    setValue(view, resolveActiveTemplate());
   }
-  previousThemeId = themeSelect.value;
   updateTemplateUi();
   doCompile();
 });
@@ -604,11 +628,10 @@ window.addEventListener("beforeunload", () => {
 async function init() {
   performance.mark("init-start");
 
-  // Before reading themeSelect.value: the options do not exist until this runs.
-  populateThemeOptions();
-  populateStarterOptions();
+  // Before reading the selection: the options do not exist until this runs.
+  migrateLegacyTemplateKeys();
+  populateTemplateOptions();
 
-  previousThemeId = themeSelect.value;
   view = createEditorView(editorHost, currentMarkdown, currentHighlightThemeId(isDark()), onDocChange);
   if (wrapLinesToggle.checked) setLineWrap(view, true);
   performance.mark("editor-ready");
@@ -616,7 +639,7 @@ async function init() {
 
   updateTemplateUi();
   try {
-    compiler = await getCompiler(fontsFor(themeSelect.value, false));
+    compiler = await getCompiler(fontsFor(fontThemeId(activeSelection()), false));
     performance.mark("compiler-ready");
     performance.measure("compiler-total", "init-start", "compiler-ready");
 

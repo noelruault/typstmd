@@ -56,9 +56,11 @@ export const starters: Starter[] = [
   },
   {
     id: "graceful-genetics",
-    name: "Universe: graceful-genetics",
+    name: "Universe: graceful-genetics (Oxford masthead)",
     spec: "graceful-genetics:0.2.0",
-    preamble: `#import "@preview/graceful-genetics:0.2.0" as graceful-genetics
+    // `make-venue` in the package's own src/impl.typ hardcodes the masthead with no parameter, so no preamble can change it.
+    preamble: `// This package prints a fixed "OXFORD PHYSICS" masthead and exposes no option for it.
+#import "@preview/graceful-genetics:0.2.0" as graceful-genetics
 
 #show: graceful-genetics.template.with(
   title: [A Paper Title],

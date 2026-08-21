@@ -152,8 +152,7 @@
       border-color: var(--border-view-active);
       color: var(--text-view-active);
     }
-    #theme-select,
-    #starter-select {
+    #template-select {
       padding: 4px 8px;
       border: 1px solid var(--border-secondary);
       border-radius: 4px;
@@ -333,8 +332,8 @@
     </label>
     <div class="toolbar-spacer"></div>
     <!-- Options come from the theme registry at runtime; a hardcoded list drifts. -->
-    <select id="theme-select" title="PDF theme"></select>
-    <select id="starter-select" title="Load a Typst Universe template into the Template view"></select>
+    <!-- Themes, Universe packages and brought-in files are all templates: one picker, built at runtime. -->
+    <select id="template-select" title="Template: a built-in theme, a Typst Universe package, or one of yours"></select>
     <label class="toolbar-secondary" for="template-file" title="Use any .typ file as the template">Open .typ</label>
     <input id="template-file" type="file" accept=".typ" hidden>
     <button id="dark-toggle" title="Toggle dark mode">🌙</button>

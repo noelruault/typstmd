@@ -84,6 +84,14 @@ Two rules the tests enforce, both learned the hard way:
 
 Themes are for documents. The tighter rhythm of a CV belongs in a template, not a theme; `aitelier` carries the palette and the mono section-label motif of `noel.engineer/resume` on the document spacing contract above.
 
+## One template picker
+
+Themes, Universe starters and brought-in files are all templates, so the toolbar has one `#template-select` with three groups. A selection is `kind:id` (`theme:aitelier`, `starter:charged-ieee`, `user:cv.typ`) because a bare id cannot tell a theme called `ieee` from a package called `ieee`; `src/template-selection.ts` parses it and resolves the source, preferring a Template-view edit over the pristine one.
+
+Only a **theme** carries a font descriptor. A package or a brought-in file gets the default set, which is every face the browser build loads, so `fontThemeId()` falls back to `default` for them.
+
+Template-view edits are stored per selection (`typstmd:template:theme:aitelier`), and the active selection persists in `typstmd:template-selection`. `migrateLegacyTemplateKeys()` moves the old per-theme keys across; without it, anyone who had customised a theme loses that edit the first time they load the unified picker.
+
 ## Bringing in a template
 
 Any `.typ` file is a template: drop it on the page or use **Open .typ**. It is saved under its filename (`typstmd:user-template:<name>`, see `src/user-templates.ts`), listed in the toolbar picker under "Yours" beside the built-in starters, and re-adding the same name asks before replacing it. `src/dropped-file.ts` decides what a brought-in file is: `.typ` is a template, markdown is the document, anything else is an image mapped into the VFS.
