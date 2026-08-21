@@ -2,6 +2,13 @@ import { getCompiler, type FontSpec, type TypstCompiler } from "./typst-compiler
 import { markdownToTypst } from "./pipeline";
 import { getTheme, themes, EMOJI_FONT } from "./themes/index";
 import { starters, getStarter } from "./starters";
+import { classifyDroppedFile } from "./dropped-file";
+import {
+  listUserTemplates,
+  getUserTemplate,
+  hasUserTemplate,
+  saveUserTemplate,
+} from "./user-templates";
 import { fetchImages, fetchPackages, scanImageUrls, scanPackageSpecs } from "./resources";
 import {
   getCustomTemplate,
@@ -74,6 +81,9 @@ const themeSelect = document.getElementById(
 const starterSelect = document.getElementById(
   "starter-select",
 ) as HTMLSelectElement;
+const templateFileInput = document.getElementById(
+  "template-file",
+) as HTMLInputElement;
 const downloadLink = document.getElementById(
   "download-link",
 ) as HTMLAnchorElement;
@@ -308,30 +318,56 @@ function populateThemeOptions() {
   );
 }
 
-function populateStarterOptions() {
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "Starter…";
-  starterSelect.replaceChildren(
-    placeholder,
-    ...starters.map((starter) => {
-      const opt = document.createElement("option");
-      opt.value = starter.id;
-      opt.textContent = starter.name;
-      return opt;
-    }),
-  );
+function option(value: string, label: string): HTMLOptionElement {
+  const opt = document.createElement("option");
+  opt.value = value;
+  opt.textContent = label;
+  return opt;
 }
 
-/** Loads a Universe preamble into the Template view, where the user edits its arguments. */
+function populateStarterOptions() {
+  const placeholder = option("", "Template…");
+
+  const universe = document.createElement("optgroup");
+  universe.label = "Typst Universe";
+  universe.append(...starters.map((s) => option(`starter:${s.id}`, s.name)));
+
+  const children: (HTMLOptionElement | HTMLOptGroupElement)[] = [placeholder, universe];
+
+  const mine = listUserTemplates();
+  if (mine.length > 0) {
+    const group = document.createElement("optgroup");
+    group.label = "Yours";
+    group.append(...mine.map((name) => option(`user:${name}`, name)));
+    children.push(group);
+  }
+
+  starterSelect.replaceChildren(...children);
+}
+
+/** Any Typst source can be the template: a theme, a Universe preamble, or a user's own file. */
+function loadTemplateSource(label: string, source: string) {
+  if (viewMode !== "template") setViewMode("template");
+  setValue(view, source);
+  setStatus(`Loaded ${label}`, "loading");
+  doCompile();
+}
+
 function loadStarter(id: string) {
   const starter = getStarter(id);
   if (!starter) return;
+  loadTemplateSource(`${starter.name}, fetching @preview/${starter.spec}`, starter.preamble);
+}
 
-  if (viewMode !== "template") setViewMode("template");
-  setValue(view, starter.preamble);
-  setStatus(`Loaded ${starter.name}, fetching @preview/${starter.spec}`, "loading");
-  doCompile();
+/** Saves a brought-in template under its filename so it survives a reload, then loads it. */
+function adoptTemplateFile(name: string, source: string) {
+  if (hasUserTemplate(name) && !confirm(`Replace the saved template "${name}"?`)) {
+    loadTemplateSource(`${name} (not saved)`, source);
+    return;
+  }
+  saveUserTemplate(name, source);
+  populateStarterOptions();
+  loadTemplateSource(name, source);
 }
 
 function setViewMode(mode: ViewMode) {
@@ -386,10 +422,16 @@ resetTemplateBtn.addEventListener("click", () => {
 });
 
 starterSelect.addEventListener("change", () => {
-  const id = starterSelect.value;
-  // Reset to the placeholder: the starter is a one-shot action, not a mode.
+  const value = starterSelect.value;
+  // Reset to the placeholder: loading a template is a one-shot action, not a mode.
   starterSelect.value = "";
-  if (id) loadStarter(id);
+  if (value.startsWith("starter:")) {
+    loadStarter(value.slice("starter:".length));
+  } else if (value.startsWith("user:")) {
+    const name = value.slice("user:".length);
+    const source = getUserTemplate(name);
+    if (source !== null) loadTemplateSource(name, source);
+  }
 });
 
 themeSelect.addEventListener("change", () => {
@@ -515,28 +557,40 @@ document.addEventListener("drop", (e) => {
   const file = e.dataTransfer?.files?.[0];
   if (!file) return;
 
-  if (!file.name.endsWith(".md") && !file.name.endsWith(".markdown") && file.type !== "text/markdown") {
-    // A browser cannot read a relative path, so a local `![](photo.png)` only works once the file is dropped in and mapped into the compiler's virtual filesystem.
-    void file.arrayBuffer().then((buffer) => {
-      droppedFiles.set(file.name, new Uint8Array(buffer));
-      setStatus(`Added ${file.name}, available to image("${file.name}")`);
-      doCompile();
-    });
-    return;
-  }
+  switch (classifyDroppedFile(file.name, file.type)) {
+    case "template":
+      void file.text().then((source) => adoptTemplateFile(file.name, source));
+      return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    const text = reader.result as string;
-    if (viewMode !== "editor") setViewMode("editor");
-    currentMarkdown = text;
-    setValue(view, text);
-    localStorage.setItem(AUTOSAVE_KEY, text);
-    clearDirty();
-    setStatus(`Loaded ${file.name}`);
-    doCompile();
-  };
-  reader.readAsText(file);
+    case "asset":
+      // A browser cannot read a relative path, so a local `![](photo.png)` only works once the file is dropped in and mapped into the compiler's virtual filesystem.
+      void file.arrayBuffer().then((buffer) => {
+        droppedFiles.set(file.name, new Uint8Array(buffer));
+        setStatus(`Added ${file.name}, available to image("${file.name}")`);
+        doCompile();
+      });
+      return;
+
+    case "markdown":
+      void file.text().then((text) => {
+        if (viewMode !== "editor") setViewMode("editor");
+        currentMarkdown = text;
+        setValue(view, text);
+        localStorage.setItem(AUTOSAVE_KEY, text);
+        clearDirty();
+        setStatus(`Loaded ${file.name}`);
+        doCompile();
+      });
+      return;
+  }
+});
+
+templateFileInput.addEventListener("change", () => {
+  const file = templateFileInput.files?.[0];
+  if (!file) return;
+  void file.text().then((source) => adoptTemplateFile(file.name, source));
+  // Cleared so picking the same file twice fires a change event both times.
+  templateFileInput.value = "";
 });
 
 // Cleanup on page unload
