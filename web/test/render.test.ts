@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { execFileSync, spawnSync } from "child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { markdownToTypst } from "../src/pipeline";
@@ -25,8 +25,25 @@ const canCompile = has("typst");
 const canInspect = has("pdftotext", ["-v"]) && has("pdffonts", ["-v"]);
 let tmpDir: string;
 
-beforeAll(() => {
+const fontDirs = new Map<string, string>();
+const NETWORK = process.env.TYPSTMD_NETWORK_TESTS === "1";
+
+beforeAll(async () => {
   tmpDir = mkdtempSync(join(tmpdir(), "typstmd-render-"));
+
+  if (!NETWORK) return;
+  for (const theme of themes) {
+    const urls = theme.fonts.urls ?? [];
+    if (urls.length === 0) continue;
+    const dir = join(tmpDir, `fonts-${theme.id}`);
+    mkdirSync(dir, { recursive: true });
+    for (const url of urls) {
+      const response = await fetch(url);
+      if (!response.ok) continue;
+      writeFileSync(join(dir, url.split("/").pop()!), new Uint8Array(await response.arrayBuffer()));
+    }
+    fontDirs.set(theme.id, dir);
+  }
 });
 
 afterAll(() => {
@@ -49,6 +66,9 @@ function render(markdown: string, themeId = "default"): Rendered {
   const args = ["compile", "--ignore-system-fonts"];
   // The emoji face is fetched at runtime in the browser; tests need it on disk to render.
   if (needsEmojiFont && EMOJI_FONT_DIR) args.push("--font-path", EMOJI_FONT_DIR);
+  // A theme may declare faces by URL, which the browser loads for it.
+  const themeFontDir = fontDirs.get(themeId);
+  if (themeFontDir) args.push("--font-path", themeFontDir);
   args.push(srcPath, pdfPath);
 
   // spawnSync, not execFileSync: warnings go to stderr on success and must be asserted on.
@@ -163,7 +183,9 @@ describe.if(canCompile && canInspect)("rendered output", () => {
   };
 
   for (const theme of themes) {
-    it(`${theme.id}: names no font it cannot load`, () => {
+    // A theme whose faces come by URL can only be checked when those are fetchable.
+    const checkable = (theme.fonts.urls ?? []).length === 0 || NETWORK;
+    it.if(checkable)(`${theme.id}: names no font it cannot load`, () => {
       const { stderr, fonts } = render("# Title\n\nBody with `code`.\n", theme.id);
       expect(stderr).not.toContain("unknown font family");
       for (const family of theme.fonts.families) {

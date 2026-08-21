@@ -73,6 +73,22 @@ The `default` theme's spacing is a tuned system, not a bag of independent number
 
 `minimal.ts` / `academic.ts` / `aitelier.ts` share the same wrapped-heading leading fix and should follow the same ordering. The `ieee` theme is governed by the IEEE spec instead (verified page geometry from `ieee-pages-and-margins-2016.pdf`, numbered headings, dedicated cover + TOC pages, body page numbers) — do not apply the default theme's values to it.
 
+## The `pentest` theme
+
+Mirrors a generated penetration-test report: cover page with a charcoal title band, a dotted-leader contents page, section titles over a heavy rule, severity pills, a findings table with a dark header, and a metadata card per finding. Set in **Arimo**, which is metric-compatible with Helvetica and OFL, fetched by URL through the theme's font descriptor. Static faces only: Typst warns that variable fonts are unsupported and silently drops bold.
+
+Three conventions it reads out of ordinary Markdown, all documented in `web/test/visuals/pentest-report.md`:
+
+| Markdown | Renders as |
+| --- | --- |
+| A table with **2 columns** | The metadata card; its GFM header row is hidden |
+| A table with **3+ columns** | A data table with the dark header band |
+| A cell or `**strong**` that is *only* a severity word | A coloured pill (`Critical`, `High`, `Medium`, `Low`, `Informational`, `Unknown`) |
+
+The pill only substitutes when the cell says nothing else, so prose containing "high" is untouched.
+
+Table fill and strokes are set **before** any table exists, because a `set` rule inside a table's own `show` rule cannot restyle that table. Two things that look like they should work and do not: wrapping a cell in `box(width: 100%)` (circular width dependency, the column collapses) and `set table.cell(fill: …)` from a show rule (the header row disappears).
+
 ## Adding a theme
 
 `web/src/themes/<id>.ts` exporting a `Theme`, then register it in `themes/index.ts`. Nothing else: the picker is built from the registry at runtime, and `themes.test.ts` plus `render.test.ts` pick the new theme up automatically.

@@ -1,102 +1,122 @@
 {
   "example @ default": {
-    "transformMs": 3.2221250000000055,
-    "compileMs": 49.302166
+    "transformMs": 3.5031250000000114,
+    "compileMs": 50.842749999999995
   },
   "example @ minimal": {
-    "transformMs": 2.878500000000031,
-    "compileMs": 53.444124999999985
+    "transformMs": 2.8969999999999914,
+    "compileMs": 49.288415999999984
   },
   "example @ academic": {
-    "transformMs": 2.707249999999931,
-    "compileMs": 59.36429199999998
+    "transformMs": 2.7893329999999423,
+    "compileMs": 55.640083000000004
   },
   "example @ ieee": {
-    "transformMs": 2.4858330000001843,
-    "compileMs": 62.702167000000145
+    "transformMs": 2.5803750000000036,
+    "compileMs": 54.24595899999986
   },
   "example @ aitelier": {
-    "transformMs": 2.600791999999956,
-    "compileMs": 49.53245800000013
+    "transformMs": 2.9644579999999223,
+    "compileMs": 51.701499999999896
+  },
+  "example @ pentest": {
+    "transformMs": 2.805584000000181,
+    "compileMs": 52.71041699999978
   },
   "visual:headings @ default": {
-    "transformMs": 0.5389579999996386,
-    "compileMs": 16.961791000000176
+    "transformMs": 0.43862499999977445,
+    "compileMs": 14.845874999999978
   },
   "visual:headings @ minimal": {
-    "transformMs": 0.4390830000002097,
-    "compileMs": 11.646582999999737
+    "transformMs": 0.4471250000001419,
+    "compileMs": 11.307291999999961
   },
   "visual:headings @ academic": {
-    "transformMs": 0.4885409999997137,
-    "compileMs": 16.59887499999968
+    "transformMs": 0.4770419999999831,
+    "compileMs": 15.879749999999603
   },
   "visual:headings @ ieee": {
-    "transformMs": 0.5458330000001297,
-    "compileMs": 13.24795899999981
+    "transformMs": 0.5388750000001892,
+    "compileMs": 15.895708999999897
   },
   "visual:headings @ aitelier": {
-    "transformMs": 0.48016699999971024,
-    "compileMs": 15.945624999999836
+    "transformMs": 0.4463749999999891,
+    "compileMs": 11.762374999999793
+  },
+  "visual:headings @ pentest": {
+    "transformMs": 0.47400000000016007,
+    "compileMs": 12.201792000000296
   },
   "visual:tables @ default": {
-    "transformMs": 2.1950409999999465,
-    "compileMs": 18.04229200000009
+    "transformMs": 1.9288750000000618,
+    "compileMs": 17.128375000000233
   },
   "visual:tables @ minimal": {
-    "transformMs": 2.048000000000229,
-    "compileMs": 17.534834000000046
+    "transformMs": 2.0037500000003092,
+    "compileMs": 19.488374999999905
   },
   "visual:tables @ academic": {
-    "transformMs": 2.14975000000004,
-    "compileMs": 20.698499999999967
+    "transformMs": 1.9785000000001673,
+    "compileMs": 22.646624999999858
   },
   "visual:tables @ ieee": {
-    "transformMs": 2.049250000000029,
-    "compileMs": 20.324625000000196
+    "transformMs": 2.6599169999999503,
+    "compileMs": 19.377500000000055
   },
   "visual:tables @ aitelier": {
-    "transformMs": 2.0400830000003225,
-    "compileMs": 21.49420800000007
+    "transformMs": 1.989042000000154,
+    "compileMs": 19.897416999999678
+  },
+  "visual:tables @ pentest": {
+    "transformMs": 1.9159170000002632,
+    "compileMs": 20.245707999999468
   },
   "visual:code-blocks @ default": {
-    "transformMs": 0.35987500000010186,
-    "compileMs": 25.538541999999325
+    "transformMs": 0.4226669999998194,
+    "compileMs": 28.513999999999214
   },
   "visual:code-blocks @ minimal": {
-    "transformMs": 0.3560829999996713,
-    "compileMs": 32.15362499999992
+    "transformMs": 0.42633399999976973,
+    "compileMs": 28.706833000000188
   },
   "visual:code-blocks @ academic": {
-    "transformMs": 0.40229100000033213,
-    "compileMs": 25.467791999999463
+    "transformMs": 0.3779999999997017,
+    "compileMs": 25.931249999999636
   },
   "visual:code-blocks @ ieee": {
-    "transformMs": 0.3790839999992386,
-    "compileMs": 31.070332999999664
+    "transformMs": 0.3704999999999927,
+    "compileMs": 28.503374999999323
   },
   "visual:code-blocks @ aitelier": {
-    "transformMs": 0.4079170000004524,
-    "compileMs": 25.306166999999732
+    "transformMs": 0.41016600000057224,
+    "compileMs": 25.273207999999613
+  },
+  "visual:code-blocks @ pentest": {
+    "transformMs": 0.4317080000000715,
+    "compileMs": 28.286458999999923
   },
   "synthetic:150-entries @ default": {
-    "transformMs": 20.232999999999265,
-    "compileMs": 50.95299999999952
+    "transformMs": 21.44024999999965,
+    "compileMs": 52.00291600000037
   },
   "synthetic:150-entries @ minimal": {
-    "transformMs": 18.738125000000764,
-    "compileMs": 56.51745799999935
+    "transformMs": 20.340416999999434,
+    "compileMs": 52.40533400000004
   },
   "synthetic:150-entries @ academic": {
-    "transformMs": 17.70008400000006,
-    "compileMs": 87.13699999999972
+    "transformMs": 20.680875000000015,
+    "compileMs": 81.8765000000003
   },
   "synthetic:150-entries @ ieee": {
-    "transformMs": 19.287749999999505,
-    "compileMs": 82.09820900000068
+    "transformMs": 19.95287499999995,
+    "compileMs": 77.55891599999995
   },
   "synthetic:150-entries @ aitelier": {
-    "transformMs": 18.880458999999973,
-    "compileMs": 55.46524999999929
+    "transformMs": 19.257792000000336,
+    "compileMs": 53.85283300000083
+  },
+  "synthetic:150-entries @ pentest": {
+    "transformMs": 19.411708999999973,
+    "compileMs": 68.18199999999888
   }
 }
