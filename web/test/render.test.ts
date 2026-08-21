@@ -8,6 +8,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { markdownToTypst } from "../src/pipeline";
 import { themes } from "../src/themes";
+import { starters } from "../src/starters";
 
 const EMOJI_FONT_DIR = process.env.TYPSTMD_EMOJI_FONT_DIR;
 
@@ -103,7 +104,8 @@ describe.if(canCompile && canInspect)("rendered output", () => {
   });
 
   it("compiles a raw Typst template that defines no conf", () => {
-    const { typstSource } = markdownToTypst("---\ntitle: Raw\n---\n\n= Heading\n\nBody text.\n", {
+    // Frontmatter with an author included: document.author takes strings, and emitting content there is a compile error no string assertion can see.
+    const { typstSource } = markdownToTypst("---\ntitle: Raw\nauthor: Someone\n---\n\n= Heading\n\nBody text.\n", {
       templateOverride: '#set page(paper: "a4")\n#set text(font: "Libertinus Serif", size: 11pt)',
     });
     const srcPath = join(tmpDir, "raw-template.typ");
@@ -139,6 +141,7 @@ describe.if(canCompile && canInspect)("rendered output", () => {
   const EMBEDDED_AS: Record<string, string> = {
     "Libertinus Serif": "LibertinusSerif",
     "New Computer Modern": "NewCM",
+    "DejaVu Sans Mono": "DejaVuSansMono",
   };
 
   for (const theme of themes) {
@@ -150,6 +153,23 @@ describe.if(canCompile && canInspect)("rendered output", () => {
       }
     });
   }
+
+  // Downloads packages, so it is opt-in: CI stays hermetic, but a hand-written preamble that invents a parameter is only caught by compiling it.
+  describe.if(process.env.TYPSTMD_NETWORK_TESTS === "1")("universe starters compile", () => {
+    for (const starter of starters) {
+      it(starter.id, () => {
+        const { typstSource } = markdownToTypst("= Section\n\nBody text.\n", {
+          templateOverride: starter.preamble,
+        });
+        const srcPath = join(tmpDir, `starter-${starter.id}.typ`);
+        const pdfPath = srcPath.replace(/\.typ$/, ".pdf");
+        writeFileSync(srcPath, typstSource, "utf-8");
+        const proc = spawnSync("typst", ["compile", srcPath, pdfPath], { encoding: "utf-8" });
+        expect(proc.stderr).not.toContain("error:");
+        expect(proc.status).toBe(0);
+      });
+    }
+  });
 
   it.if(Boolean(EMOJI_FONT_DIR))("embeds the emoji face only when the document has emoji", () => {
     const withEmoji = render("Shipping :rocket: today.\n");

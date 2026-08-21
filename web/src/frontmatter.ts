@@ -80,13 +80,16 @@ function normalizeMetadata(raw: Record<string, unknown>): Metadata {
   return meta;
 }
 
-/** Document properties for templates that expose no `conf` to receive them. */
+/**
+ * Document properties for templates that expose no `conf` to receive them.
+ * String literals, not content blocks: `document.author` rejects content outright.
+ */
 export function encodeDocumentSet(meta: Metadata): string {
   const args: string[] = [];
-  if (meta.title) args.push(`title: [${escapeText(meta.title)}]`);
+  if (meta.title) args.push(`title: "${escapeUrl(meta.title)}"`);
   if (meta.author && meta.author.length > 0) {
     const authors = (Array.isArray(meta.author) ? meta.author : [meta.author])
-      .map((name) => `[${escapeText(name)}]`)
+      .map((name) => `"${escapeUrl(name)}"`)
       .join(", ");
     args.push(`author: (${authors},)`);
   }

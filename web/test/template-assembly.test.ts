@@ -21,7 +21,8 @@ describe("template assembly", () => {
   it("gives a raw template its document properties through set document", () => {
     const md = "---\ntitle: A Title\nauthor: Someone\n---\n\nBody.";
     const { typstSource } = markdownToTypst(md, { templateOverride: RAW_TEMPLATE });
-    expect(typstSource).toContain("#set document(title: [A Title], author: ([Someone],))");
+    // Strings, not content: document.author rejects content, which only a compile catches.
+    expect(typstSource).toContain('#set document(title: "A Title", author: ("Someone",))');
   });
 
   it("substitutes the body marker when a template places content itself", () => {

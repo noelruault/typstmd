@@ -1,6 +1,7 @@
 import { getCompiler, type FontSpec, type TypstCompiler } from "./typst-compiler";
 import { markdownToTypst } from "./pipeline";
-import { getTheme, EMOJI_FONT } from "./themes/index";
+import { getTheme, themes, EMOJI_FONT } from "./themes/index";
+import { starters, getStarter } from "./starters";
 import { fetchImages, fetchPackages, scanImageUrls, scanPackageSpecs } from "./resources";
 import {
   getCustomTemplate,
@@ -69,6 +70,9 @@ const resetTemplateBtn = document.getElementById(
 ) as HTMLButtonElement;
 const themeSelect = document.getElementById(
   "theme-select",
+) as HTMLSelectElement;
+const starterSelect = document.getElementById(
+  "starter-select",
 ) as HTMLSelectElement;
 const downloadLink = document.getElementById(
   "download-link",
@@ -279,7 +283,6 @@ function exitSourceMode() {
 }
 
 function enterSourceMode() {
-  currentMarkdown = getValue(view);
   setValue(view, lastTypstSource);
   setReadOnly(view, true);
 }
@@ -290,11 +293,45 @@ function exitTemplateMode() {
 }
 
 function enterTemplateMode() {
-  if (viewMode === "editor") {
-    currentMarkdown = getValue(view);
-  }
   setValue(view, resolveTemplate(themeSelect.value));
   setReadOnly(view, false);
+}
+
+function populateThemeOptions() {
+  themeSelect.replaceChildren(
+    ...themes.map((theme) => {
+      const opt = document.createElement("option");
+      opt.value = theme.id;
+      opt.textContent = theme.name;
+      return opt;
+    }),
+  );
+}
+
+function populateStarterOptions() {
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Starter…";
+  starterSelect.replaceChildren(
+    placeholder,
+    ...starters.map((starter) => {
+      const opt = document.createElement("option");
+      opt.value = starter.id;
+      opt.textContent = starter.name;
+      return opt;
+    }),
+  );
+}
+
+/** Loads a Universe preamble into the Template view, where the user edits its arguments. */
+function loadStarter(id: string) {
+  const starter = getStarter(id);
+  if (!starter) return;
+
+  if (viewMode !== "template") setViewMode("template");
+  setValue(view, starter.preamble);
+  setStatus(`Loaded ${starter.name}, fetching @preview/${starter.spec}`, "loading");
+  doCompile();
 }
 
 function setViewMode(mode: ViewMode) {
@@ -302,13 +339,21 @@ function setViewMode(mode: ViewMode) {
     mode = "editor";
   }
 
-  if (viewMode === "source") exitSourceMode();
-  if (viewMode === "template") exitTemplateMode();
+  const previous = viewMode;
+  if (previous === "editor") {
+    currentMarkdown = getValue(view);
+  }
+
+  // Switch mode before touching the editor. setValue fires onDocChange synchronously, and
+  // under the old mode that schedules a save which writes the template over the markdown.
+  viewMode = mode;
+
+  if (previous === "source") exitSourceMode();
+  if (previous === "template") exitTemplateMode();
 
   if (mode === "source") enterSourceMode();
   if (mode === "template") enterTemplateMode();
 
-  viewMode = mode;
   updateTemplateUi();
 }
 
@@ -338,6 +383,13 @@ resetTemplateBtn.addEventListener("click", () => {
   setValue(view, getTheme(themeSelect.value).template);
   updateTemplateUi();
   doCompile();
+});
+
+starterSelect.addEventListener("change", () => {
+  const id = starterSelect.value;
+  // Reset to the placeholder: the starter is a one-shot action, not a mode.
+  starterSelect.value = "";
+  if (id) loadStarter(id);
 });
 
 themeSelect.addEventListener("change", () => {
@@ -497,6 +549,10 @@ window.addEventListener("beforeunload", () => {
 // Initialize
 async function init() {
   performance.mark("init-start");
+
+  // Before reading themeSelect.value: the options do not exist until this runs.
+  populateThemeOptions();
+  populateStarterOptions();
 
   previousThemeId = themeSelect.value;
   view = createEditorView(editorHost, currentMarkdown, currentHighlightThemeId(isDark()), onDocChange);

@@ -34,8 +34,15 @@ import { defaultTheme } from "./default";
 import { minimalTheme } from "./minimal";
 import { academicTheme } from "./academic";
 import { ieeeTheme } from "./ieee";
+import { aitelierTheme } from "./aitelier";
 
-export const themes: Theme[] = [defaultTheme, minimalTheme, academicTheme, ieeeTheme];
+export const themes: Theme[] = [
+  defaultTheme,
+  minimalTheme,
+  academicTheme,
+  ieeeTheme,
+  aitelierTheme,
+];
 
 export function getTheme(id: string): Theme {
   return themes.find((t) => t.id === id) ?? defaultTheme;

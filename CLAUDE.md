@@ -71,7 +71,24 @@ The `default` theme's spacing is a tuned system, not a bag of independent number
 - **Letter-spacing and word-spacing are deliberately NOT baked in.** WCAG 1.4.12 only requires that content survive a *user* applying `tracking` / word-spacing; hard-coding them (`text(tracking:)` / `text(spacing:)`) alters the typeface's texture and reads as a font change. Leave them to the reader/browser.
 - **Code blocks are exempt** — `raw` keeps its own tight `leading` and normal letter spacing so monospace stays aligned.
 
-`minimal.ts` / `academic.ts` share the same wrapped-heading leading fix and should follow the same ordering. The `ieee` theme is governed by the IEEE spec instead (verified page geometry from `ieee-pages-and-margins-2016.pdf`, numbered headings, dedicated cover + TOC pages, body page numbers) — do not apply the default theme's values to it.
+`minimal.ts` / `academic.ts` / `aitelier.ts` share the same wrapped-heading leading fix and should follow the same ordering. The `ieee` theme is governed by the IEEE spec instead (verified page geometry from `ieee-pages-and-margins-2016.pdf`, numbered headings, dedicated cover + TOC pages, body page numbers) — do not apply the default theme's values to it.
+
+## Adding a theme
+
+`web/src/themes/<id>.ts` exporting a `Theme`, then register it in `themes/index.ts`. Nothing else: the picker is built from the registry at runtime, and `themes.test.ts` plus `render.test.ts` pick the new theme up automatically.
+
+Two rules the tests enforce, both learned the hard way:
+
+- **Name only fonts the theme declares** in its `fonts` descriptor. Typst warns for every family it cannot resolve, whether or not the document uses it, so a stray family in a fallback list means a warning on every compile.
+- **Size code relative to its context** (`0.78em`, not `9pt`). An absolute size renders inline code inside a heading at body size, and the obvious fix, `show raw: set text(size: 1em)`, is a no-op because `1em` resolves against the size the outer rule already set.
+
+Themes are for documents. The tighter rhythm of a CV belongs in a template, not a theme; `aitelier` carries the palette and the mono section-label motif of `noel.engineer/resume` on the document spacing contract above.
+
+## Universe starters
+
+`web/src/starters.ts` holds preambles for Typst Universe templates, loaded into the Template view from the toolbar. They are **not** copied theme code: the package is fetched at a pinned version, so the rendering stays upstream's and every parameter it exposes stays reachable.
+
+Derive a new starter from that package's own `template/main.typ`, never by hand. Argument types are not guessable (`basic-resume` wants `author: "string"`, `charged-ieee` wants `department: [content]`, `dashing-dept-news` has no `subtitle` at all), and a wrong one only surfaces on compile. `TYPSTMD_NETWORK_TESTS=1 bun test test/render.test.ts` compiles every starter for exactly this reason; it is opt-in because it downloads packages.
 
 Because unit tests only assert the generated Typst *string*, a spacing regression will pass `bun test`. Verify spacing changes by rendering — `web/test/visuals/headings.md` is the fixture for this.
 

@@ -1,82 +1,102 @@
 {
   "example @ default": {
-    "transformMs": 3.54495799999998,
-    "compileMs": 49.65641700000003
+    "transformMs": 3.2221250000000055,
+    "compileMs": 49.302166
   },
   "example @ minimal": {
-    "transformMs": 2.7519999999999527,
-    "compileMs": 48.45662500000003
+    "transformMs": 2.878500000000031,
+    "compileMs": 53.444124999999985
   },
   "example @ academic": {
-    "transformMs": 2.61683400000004,
-    "compileMs": 55.04904099999999
+    "transformMs": 2.707249999999931,
+    "compileMs": 59.36429199999998
   },
   "example @ ieee": {
-    "transformMs": 2.5072500000001128,
-    "compileMs": 55.70270800000003
+    "transformMs": 2.4858330000001843,
+    "compileMs": 62.702167000000145
+  },
+  "example @ aitelier": {
+    "transformMs": 2.600791999999956,
+    "compileMs": 49.53245800000013
   },
   "visual:headings @ default": {
-    "transformMs": 0.49358299999994415,
-    "compileMs": 14.727457999999842
+    "transformMs": 0.5389579999996386,
+    "compileMs": 16.961791000000176
   },
   "visual:headings @ minimal": {
-    "transformMs": 0.5080000000000382,
-    "compileMs": 11.07270799999992
+    "transformMs": 0.4390830000002097,
+    "compileMs": 11.646582999999737
   },
   "visual:headings @ academic": {
-    "transformMs": 0.47420899999997346,
-    "compileMs": 12.083999999999833
+    "transformMs": 0.4885409999997137,
+    "compileMs": 16.59887499999968
   },
   "visual:headings @ ieee": {
-    "transformMs": 0.4446250000000873,
-    "compileMs": 16.017041999999947
+    "transformMs": 0.5458330000001297,
+    "compileMs": 13.24795899999981
+  },
+  "visual:headings @ aitelier": {
+    "transformMs": 0.48016699999971024,
+    "compileMs": 15.945624999999836
   },
   "visual:tables @ default": {
-    "transformMs": 2.0474169999997684,
-    "compileMs": 19.643750000000182
+    "transformMs": 2.1950409999999465,
+    "compileMs": 18.04229200000009
   },
   "visual:tables @ minimal": {
-    "transformMs": 2.0189170000003287,
-    "compileMs": 19.928750000000036
+    "transformMs": 2.048000000000229,
+    "compileMs": 17.534834000000046
   },
   "visual:tables @ academic": {
-    "transformMs": 2.005666999999903,
-    "compileMs": 22.329749999999876
+    "transformMs": 2.14975000000004,
+    "compileMs": 20.698499999999967
   },
   "visual:tables @ ieee": {
-    "transformMs": 1.9326249999999163,
-    "compileMs": 19.11566700000003
+    "transformMs": 2.049250000000029,
+    "compileMs": 20.324625000000196
+  },
+  "visual:tables @ aitelier": {
+    "transformMs": 2.0400830000003225,
+    "compileMs": 21.49420800000007
   },
   "visual:code-blocks @ default": {
-    "transformMs": 0.38308399999959875,
-    "compileMs": 25.54162499999984
+    "transformMs": 0.35987500000010186,
+    "compileMs": 25.538541999999325
   },
   "visual:code-blocks @ minimal": {
-    "transformMs": 0.41449999999986176,
-    "compileMs": 25.640750000000025
+    "transformMs": 0.3560829999996713,
+    "compileMs": 32.15362499999992
   },
   "visual:code-blocks @ academic": {
-    "transformMs": 0.3579580000000533,
-    "compileMs": 29.07320800000025
+    "transformMs": 0.40229100000033213,
+    "compileMs": 25.467791999999463
   },
   "visual:code-blocks @ ieee": {
-    "transformMs": 0.3789999999999054,
-    "compileMs": 28.482750000000124
+    "transformMs": 0.3790839999992386,
+    "compileMs": 31.070332999999664
+  },
+  "visual:code-blocks @ aitelier": {
+    "transformMs": 0.4079170000004524,
+    "compileMs": 25.306166999999732
   },
   "synthetic:150-entries @ default": {
-    "transformMs": 21.103375000000142,
-    "compileMs": 52.19825000000037
+    "transformMs": 20.232999999999265,
+    "compileMs": 50.95299999999952
   },
   "synthetic:150-entries @ minimal": {
-    "transformMs": 18.34704199999942,
-    "compileMs": 60.14179100000001
+    "transformMs": 18.738125000000764,
+    "compileMs": 56.51745799999935
   },
   "synthetic:150-entries @ academic": {
-    "transformMs": 18.93341600000076,
-    "compileMs": 90.10483300000033
+    "transformMs": 17.70008400000006,
+    "compileMs": 87.13699999999972
   },
   "synthetic:150-entries @ ieee": {
-    "transformMs": 18.788832999999613,
-    "compileMs": 82.56204100000014
+    "transformMs": 19.287749999999505,
+    "compileMs": 82.09820900000068
+  },
+  "synthetic:150-entries @ aitelier": {
+    "transformMs": 18.880458999999973,
+    "compileMs": 55.46524999999929
   }
 }
