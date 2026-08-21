@@ -89,6 +89,8 @@ The pill only substitutes when the cell says nothing else, so prose containing "
 
 Table fill and strokes are set **before** any table exists, because a `set` rule inside a table's own `show` rule cannot restyle that table. Two things that look like they should work and do not: wrapping a cell in `box(width: 100%)` (circular width dependency, the column collapses) and `set table.cell(fill: …)` from a show rule (the header row disappears).
 
+The pill substitution returns `table.cell(align: horizon, badge(…))`, not a bare `badge(…)`: content handed back from a `show table.cell` rule ignores the table's `align`, so a bare badge floats at the top of a tall wrapped row. Rebuilding the cell makes the pill inherit the centring; it re-enters the rule once (the new body is a box, no severity word) and stops. `box(height: 100%)` to fill the row is the same circular trap as `box(width: 100%)` and blows the row up.
+
 ## Adding a theme
 
 `web/src/themes/<id>.ts` exporting a `Theme`, then register it in `themes/index.ts`. Nothing else: the picker is built from the registry at runtime, and `themes.test.ts` plus `render.test.ts` pick the new theme up automatically.
@@ -129,7 +131,7 @@ Linear, self-contained:
 1. `cmd/converter.sh`: entry point. Validates deps, parses `--mermaid`, invokes Pandoc with a **pinned reader dialect** (`READER_DIALECT`) that mirrors the web's remark plugin set. Bare `markdown` would grant ~40 extensions the web has never had; `smart` must stay on or the CLI escapes `--` and `"` that the web leaves for Typst.
 2. Pandoc applies:
    - `cmd/filters/table.lua`: emits the same `#table(columns: …, table.header(…), …)` shape as `serializeTable` in the web serializer, including the same column-width heuristic. Keep the two in sync; a table split across pages loses its header without `table.header`.
-   - Optional: `mermaid-filter` (npm) renders Mermaid code blocks to PNG. **This is the only thing that makes the two front-ends disagree**, and it is opt-in: without the flag, a ` ```mermaid ` block prints its source as a raw block, byte-identically on both sides, which `parity.test.ts` pins. Rendering it in the browser would need mermaid.js plus the image pipeline, and the resulting PDF would carry a picture rather than Typst content, so the same Markdown would not reproduce the diagram in the upstream compiler.
+   - `cmd/filters/mermaid.lua`: with `--mermaid` (which passes `-M mermaid=true`), injects `#import "@preview/merman"` + `show raw.where(lang: "mermaid"): show-mermaid-blocks()`, the exact two lines `pipeline.ts` injects on the web, so a mermaid fence draws as a real Typst diagram in the upstream compiler. Without the flag the fence prints its source, byte-identically on both sides. `parity.test.ts` asserts equality in **both** states. Rendering stays Typst content (not a PNG), so the `.typ` reproduces the diagram anywhere merman resolves; the old `mermaid-filter`/`mermaid-cli` PNG path is gone.
    - `templates/md-template.typ`: Typst template for all PDF styling (A4, Libertinus Serif 12pt, headers/footers, code/quote/table). Pandoc template with `$variable$` interpolation, not pure Typst.
 3. Typst (as Pandoc `--pdf-engine`) compiles to PDF.
 
@@ -143,7 +145,9 @@ Front matter (`title`, `author`, `date`) interpolated into title block.
 1. `remark-parse` + `remark-frontmatter` + `remark-gfm` + local plugins (`remark-emoji`, `remark-hard-breaks`, `remark-sub-super`, `remark-highlight`) produce MDAST.
 2. `mdast-to-typst.ts` serializes MDAST → Typst string. Escaping lives in `typst-escape.ts`. Warnings collected in `warnings.ts`.
 3. Typst template (per theme) wraps the body.
-4. `typst-compiler.ts` (WASM, `@myriaddreamin/typst-ts-web-compiler`) compiles → PDF bytes → Blob URL → `<iframe>`.
+4. `typst-compiler.ts` (WASM, `@myriaddreamin/typst-ts-web-compiler`) runs in a Web Worker and compiles → PDF bytes → Blob URL → `<iframe>`.
+
+**Emoji and mermaid** are injected by `pipeline.ts` only when the body uses them (the same shape as `needsEmojiFont`), never baked into a theme, so every template gets them and one with no emoji/diagram pays nothing. `MERMAID_PREAMBLE` there is the single source of truth for the injected block; `cmd/filters/mermaid.lua` mirrors it **byte-for-byte** so the CLI and web agree, and `parity.test.ts` asserts equality with the switch both off (fence prints its source) and on (both draw). Gate it with the web `mermaid` option (default on) or the CLI `--mermaid`. The show rule (`show-mermaid-blocks`) reads the fence's `.text`, so a theme's own `show raw` rules cannot corrupt the parsed diagram; it is wrapped `align(center, show-mermaid-blocks(width: 62%)(it))` so a pie or bar sits centred and does not fill the page. A long `xychart` category label clips at the plot edge (right when vertical, left when `chartOrientation: horizontal`); it is a mermaid limitation neither `viewport-width` nor orientation cures, so it is left as-is. **merman needs typst 0.14+**, which is why the compiler is pinned to `@myriaddreamin/typst-ts-web-compiler@0.7.0` (typst 0.14.2), not 0.6.0 (0.13.1). The compile runs in a **Web Worker with a timeout** (`compile-client.ts` → `compile-worker.ts`): a pathological document that would OOM or hang cannot freeze the UI thread or crash the tab; it surfaces an error and the worker respawns.
 
 **Editor** (`src/highlight/`): CodeMirror 6. `index.ts` exposes `createEditorView` / `getValue` / `setValue` / `setReadOnly` / `setHighlightTheme`. Themes live in `src/highlight/themes/*.ts`. See `src/highlight/themes/CONTRIBUTING.md` for adding one.
 
@@ -156,8 +160,7 @@ Front matter (`title`, `author`, `date`) interpolated into title block.
 ## Dependencies
 
 CLI:
-- **pandoc** + **typst** required (script exits if missing).
-- **mermaid-filter** + **@mermaid-js/mermaid-cli** optional, only for `--mermaid`.
+- **pandoc** + **typst** required (script exits if missing). `--mermaid` needs no extra tool: typst fetches the `merman` package. typst must be **0.14+** for merman.
 
 Web:
 - **bun** runtime handles build, dev server, and tests from a single tool.
@@ -177,6 +180,12 @@ Applies to **both** pipelines. Two clean boundaries:
 - Plugins operate at the markdown parse layer (remark plugins) or produce standard Typst constructs. They must not change the core authoring model.
 - The source view must show code that any Typst user would recognize as plain Typst.
 - Only add plugin-specific Typst features when genuinely necessary (e.g., icon support not available natively in Typst).
+
+## llms.txt
+
+`web/llms.txt` is the LLM-facing site summary in [llms.txt](https://llmstxt.org) format; `build.ts` copies it into `dist/`, so it deploys to the site root alongside the app (dev serves it at `/llms.txt` automatically).
+
+Update it in the same change whenever a fact it states drifts: a pipeline's shape, the kinds of templates on offer, the hosted URL, or the set of top-level docs it links. Its links must target files that exist on `main` (raw.githubusercontent.com URLs), because the file deploys from main and a dead link ships silently.
 
 ## Known limitations
 

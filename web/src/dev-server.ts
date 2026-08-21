@@ -32,14 +32,13 @@ const SECURITY_HEADERS: Record<string, string> = {
 async function bundle() {
   console.log("Bundling src/main.ts...");
   const result = await Bun.build({
-    entrypoints: [join(ROOT, "src/main.ts")],
+    entrypoints: [join(ROOT, "src/main.ts"), join(ROOT, "src/compile-worker.ts")],
     outdir: DIST,
     target: "browser",
     format: "esm",
     sourcemap: "inline",
     external: [
-      // We only use the compiler, not the renderer. The typst.ts package
-      // re-exports both; mark the renderer as external to avoid bundling it.
+      // We only use the compiler, not the renderer. The typst.ts package re-exports both; mark the renderer as external to avoid bundling it.
       "@myriaddreamin/typst-ts-renderer",
     ],
     plugins: [themesPlugin(join(ROOT, "src/highlight/themes"))],

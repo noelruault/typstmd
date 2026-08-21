@@ -1,4 +1,5 @@
-import { getCompiler, type FontSpec, type TypstCompiler } from "./typst-compiler";
+import type { FontSpec } from "./typst-compiler";
+import { compileInWorker } from "./compile-client";
 import { markdownToTypst } from "./pipeline";
 import { getTheme, themes, EMOJI_FONT } from "./themes/index";
 import { starters, getStarter } from "./starters";
@@ -17,7 +18,7 @@ import {
   hasUserTemplate,
   saveUserTemplate,
 } from "./user-templates";
-import { fetchImages, fetchPackages, scanImageUrls, scanPackageSpecs } from "./resources";
+import { fetchImages, scanImageUrls } from "./resources";
 import {
   getCustomTemplate,
   setCustomTemplate,
@@ -62,7 +63,6 @@ const SELECTION_KEY = "typstmd:template-selection";
 
 type ViewMode = "editor" | "source" | "template";
 
-let compiler: TypstCompiler;
 let view: EditorView;
 let currentPdfUrl: string | null = null;
 let latestJobId = 0;
@@ -230,9 +230,8 @@ async function doCompile() {
         ? getValue(view)
         : resolveActiveTemplate();
 
-    // Resources are fetched before serializing: image paths must be known while the body is built, and both caches are keyed by URL so typing does not refetch anything.
+    // Image paths must be known while the body is built; the cache is keyed by URL so typing does not refetch.
     const assets = await resolveAssets(currentMarkdown);
-    await fetchPackages(scanPackageSpecs(templateOverride));
 
     const { typstSource, warnings, needsEmojiFont } = markdownToTypst(currentMarkdown, {
       themeId: fontThemeId(activeSelection()),
@@ -246,9 +245,13 @@ async function doCompile() {
       setValue(view, typstSource);
     }
 
-    compiler = await getCompiler(fontsFor(fontThemeId(activeSelection()), needsEmojiFont));
-    compiler.mapAssets(assets.files);
-    const pdfBytes = await compiler.compile(typstSource);
+    // sync-xhr: the worker fetches packages (merman, Universe starters) itself. Blocking there is free; on the main thread it would freeze the UI.
+    const pdfBytes = await compileInWorker({
+      source: typstSource,
+      fonts: fontsFor(fontThemeId(activeSelection()), needsEmojiFont),
+      packageStrategy: "sync-xhr",
+      assets: [...assets.files],
+    });
 
     // Stale job - discard
     if (jobId !== latestJobId) return;
@@ -282,10 +285,8 @@ async function doCompile() {
     // Stale job - discard
     if (jobId !== latestJobId) return;
 
-    const errors = compiler.getErrors();
-    const msg = errors.length
-      ? errors.join("; ")
-      : err instanceof Error
+    const msg =
+      err instanceof Error
         ? err.message
         : JSON.stringify(err);
     setStatus(`Compile error: ${msg}`, "error");
@@ -414,8 +415,7 @@ function setViewMode(mode: ViewMode) {
     currentMarkdown = getValue(view);
   }
 
-  // Switch mode before touching the editor. setValue fires onDocChange synchronously, and
-  // under the old mode that schedules a save which writes the template over the markdown.
+  // Switch mode before touching the editor. setValue fires onDocChange synchronously, and under the old mode that schedules a save which writes the template over the markdown.
   viewMode = mode;
 
   if (previous === "source") exitSourceMode();
@@ -639,10 +639,7 @@ async function init() {
 
   updateTemplateUi();
   try {
-    compiler = await getCompiler(fontsFor(fontThemeId(activeSelection()), false));
-    performance.mark("compiler-ready");
-    performance.measure("compiler-total", "init-start", "compiler-ready");
-
+    // The worker inits lazily on the first compile, so there is no separate warm-up step.
     convertBtn.disabled = false;
 
     performance.mark("first-compile-start");

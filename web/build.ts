@@ -7,6 +7,7 @@
  *   - index.html                           with script src rewritten to ./main.js
  *   - typst_ts_web_compiler_bg.wasm        copied from node_modules
  *   - .nojekyll                            disables Jekyll on GitHub Pages
+ *   - llms.txt                             LLM-facing site summary (llmstxt.org)
  */
 
 import { join } from "node:path";
@@ -16,7 +17,7 @@ const ROOT = import.meta.dir;
 const DIST = join(ROOT, "dist");
 
 const result = await Bun.build({
-  entrypoints: [join(ROOT, "src/main.ts")],
+  entrypoints: [join(ROOT, "src/main.ts"), join(ROOT, "src/compile-worker.ts")],
   outdir: DIST,
   target: "browser",
   format: "esm",
@@ -47,5 +48,7 @@ await Bun.write(
 );
 
 await Bun.write(join(DIST, ".nojekyll"), "");
+
+await Bun.write(join(DIST, "llms.txt"), Bun.file(join(ROOT, "llms.txt")));
 
 console.log(`Built static site → ${DIST}`);

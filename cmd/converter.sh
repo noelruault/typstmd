@@ -34,15 +34,11 @@ if ! command -v typst &> /dev/null; then
     exit 1
 fi
 
-MERMAID_FILTER=""
+# --mermaid draws diagrams via the merman Typst package, the same switch the web exposes.
+# mermaid.lua injects merman only when this flag is set, so without it the fence prints its source.
+MERMAID_META=""
 if [ "$USE_MERMAID" = true ]; then
-    if ! command -v mermaid-filter &> /dev/null; then
-        echo "Error: mermaid-filter is not installed. Run: npm install -g mermaid-filter"
-        exit 1
-    fi
-    export MERMAID_FILTER_FORMAT=png
-    export MERMAID_FILTER_SCALE=4
-    MERMAID_FILTER="-F mermaid-filter"
+    MERMAID_META="-M mermaid=true"
 fi
 
 INPUTFILE="$INPUTARG"
@@ -53,6 +49,7 @@ PANDOC_PATH="$(which pandoc)"
 TEMPLATE_FILE_PATH="./templates/md-template.typ"
 TABLE_FILTER_PATH="./cmd/filters/table.lua"
 PAGEBREAK_FILTER_PATH="./cmd/filters/pagebreak.lua"
+MERMAID_FILTER_PATH="./cmd/filters/mermaid.lua"
 REMOTE_IMAGE_FILTER_PATH="./cmd/filters/remote-images.lua"
 OUTPUT_PATH="./output"
 
@@ -60,4 +57,4 @@ OUTPUT_PATH="./output"
 # `smart` stays on, or Pandoc escapes -- and " and only the CLI renders them literally.
 READER_DIALECT='markdown_strict+smart+pipe_tables+strikeout+task_lists+footnotes+yaml_metadata_block+mark+subscript+superscript+emoji+autolink_bare_uris+backtick_code_blocks+fenced_code_blocks+fenced_code_attributes'
 
-"$PANDOC_PATH" "$INPUTFILE" -f "$READER_DIALECT" $MERMAID_FILTER --lua-filter="$TABLE_FILTER_PATH" --lua-filter="$PAGEBREAK_FILTER_PATH" --lua-filter="$REMOTE_IMAGE_FILTER_PATH" --pdf-engine=typst --template="$TEMPLATE_FILE_PATH" -o "$OUTPUT_PATH"/"$PDFFILE"
+"$PANDOC_PATH" "$INPUTFILE" -f "$READER_DIALECT" $MERMAID_META --lua-filter="$TABLE_FILTER_PATH" --lua-filter="$PAGEBREAK_FILTER_PATH" --lua-filter="$MERMAID_FILTER_PATH" --lua-filter="$REMOTE_IMAGE_FILTER_PATH" --pdf-engine=typst --template="$TEMPLATE_FILE_PATH" -o "$OUTPUT_PATH"/"$PDFFILE"

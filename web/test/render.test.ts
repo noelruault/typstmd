@@ -140,9 +140,7 @@ describe.if(canCompile && canInspect)("rendered output", () => {
   });
 
   it("gives a table cell's inline code somewhere to break in a narrow column", () => {
-    // A third-party template has no ZWSP show rule of its own, so the break opportunities have
-    // to be in the content. Measured on this page at 95pt columns: the widest word is 193pt
-    // without the breaks and 139pt with them, so the threshold sits between the two.
+    // A third-party template has no ZWSP show rule of its own, so the break opportunities have to be in the content. Measured on this page at 95pt columns: the widest word is 193pt without the breaks and 139pt with them, so the threshold sits between the two.
     const md = "| | |\n|---|---|\n| **Document type / version** | Report v1.26 |\n| **Targets** | extranet (`xmldev.dotwconnect.com`) |\n";
     const { typstSource } = markdownToTypst(md, {
       templateOverride: '#set page(width: 9cm, height: 12cm, margin: 1cm, columns: 2)\n#set text(font: "Libertinus Serif", size: 10pt)',
@@ -157,12 +155,12 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     expect(Math.max(...rightEdges)).toBeLessThan(160);
   });
 
-  it("prints a mermaid block as its source rather than dropping it", () => {
-    const { text } = render('Before.\n\n```mermaid\nxychart-beta\n  bar [2, 1, 3]\n```\n\nAfter.\n');
-    // Neither front-end renders the diagram by default, so the source has to survive.
-    expect(text).toContain("xychart-beta");
-    expect(text).toContain("Before.");
-    expect(text).toContain("After.");
+  it("injects merman for a mermaid block while keeping the fence source", () => {
+    const { typstSource } = markdownToTypst('Before.\n\n```mermaid\nxychart-beta\n  bar [2, 1, 3]\n```\n\nAfter.\n');
+    expect(typstSource).toContain("@preview/merman");
+    expect(typstSource).toContain("show-mermaid-blocks");
+    // The fence text must survive serialization for merman to parse it at compile time.
+    expect(typstSource).toContain("xychart-beta");
   });
 
   it("repeats a table header on every page it spans", () => {
@@ -217,6 +215,13 @@ describe.if(canCompile && canInspect)("rendered output", () => {
         expect(proc.status).toBe(0);
       });
     }
+  });
+
+  // Downloads the merman package, so opt-in. The injection is theme-agnostic, so the plain theme exercises it; a regressed show rule would print the fence source, hence the assertion.
+  it.if(NETWORK)("draws mermaid fences instead of printing their source", () => {
+    const md = '# Charts\n\n```mermaid\npie showData title Sev\n  "High" : 1\n  "Medium" : 1\n```\n';
+    const { text } = render(md, "default");
+    expect(text).not.toContain("showData");
   });
 
   it.if(Boolean(EMOJI_FONT_DIR))("embeds the emoji face only when the document has emoji", () => {

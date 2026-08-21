@@ -32,6 +32,16 @@ export interface PipelineResult {
 
 const EMOJI_PATTERN = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/u;
 
+// The serializer emits a fenced block as ```<lang>\n…\n```; this matches a mermaid one at a line start.
+const MERMAID_FENCE = /(^|\n)```mermaid\n/;
+
+// Injected verbatim by both front-ends (cmd/filters/mermaid.lua mirrors this exactly, so parity holds).
+// width caps the diagram so a pie or bar does not fill the page; centered so it sits under its heading. A long xychart category label clips at the plot edge whichever orientation is used; that is a mermaid limitation, left as-is.
+const MERMAID_PREAMBLE = [
+  '#import "@preview/merman:0.1.0": show-mermaid-blocks',
+  '#show raw.where(lang: "mermaid"): it => align(center, show-mermaid-blocks(width: 62%)(it))',
+].join("\n");
+
 /** Substituted with the serialised body, for templates that choose where content lands. */
 const BODY_MARKER = "#typstmd-body";
 
@@ -69,6 +79,8 @@ export interface PipelineOptions {
   templateOverride?: string;
   /** Image URL or path to the VFS path the compiler was given; see resources.ts. */
   assets?: Map<string, string>;
+  /** Render mermaid fences via merman (default) or leave them as source. The CLI's `--mermaid` is the same switch. */
+  mermaid?: boolean;
 }
 
 export function markdownToTypst(
@@ -107,8 +119,13 @@ export function markdownToTypst(
     ? `#show regex("\\p{Emoji_Presentation}"): it => text(font: "${EMOJI_FONT.family}", it)`
     : "";
 
+  // Kept out of the themes so every template renders mermaid identically; the CLI's mermaid.lua injects the same block, so it must stay byte-identical there.
+  const mermaidRule = (options?.mermaid ?? true) && MERMAID_FENCE.test(body)
+    ? MERMAID_PREAMBLE
+    : "";
+
   const { preamble, bodyWrapper } = assemble(templateSource, metadata);
-  const typstSource = [frontmatterDict, preamble, emojiRule, bodyWrapper(body)]
+  const typstSource = [frontmatterDict, preamble, emojiRule, mermaidRule, bodyWrapper(body)]
     .filter((part) => part !== "")
     .join("\n\n");
 

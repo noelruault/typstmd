@@ -24,8 +24,4 @@ To render Mermaid diagrams in your markdown, use the `--mermaid` flag:
 ./cmd/converter.sh example.md --mermaid
 ```
 
-This requires [mermaid-filter](https://github.com/raghur/mermaid-filter)
-
-```bash
-npm install -g mermaid-filter @mermaid-js/mermaid-cli
-```
+No extra tool to install: Typst fetches the [merman](https://typst.app/universe/package/merman) package and draws the diagram as native Typst content (requires Typst 0.14+). Without the flag, a ` ```mermaid ` block prints its source. The web app renders the same way, on by default.

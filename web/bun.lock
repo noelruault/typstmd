@@ -7,8 +7,8 @@
       "dependencies": {
         "@codemirror/lang-markdown": "^6.5.0",
         "@codemirror/language-data": "^6.5.2",
-        "@myriaddreamin/typst-ts-web-compiler": "0.6.0",
-        "@myriaddreamin/typst.ts": "0.6.0",
+        "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
+        "@myriaddreamin/typst.ts": "0.7.0",
         "codemirror": "^6.0.2",
         "remark-emoji": "^5.0.2",
         "remark-frontmatter": "5.0.0",
@@ -120,9 +120,9 @@
 
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.2", "", {}, "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="],
 
-    "@myriaddreamin/typst-ts-web-compiler": ["@myriaddreamin/typst-ts-web-compiler@0.6.0", "", {}, "sha512-P/eIJ5RnfElj0NYzn5PI296t/IwWtgqUyyTMi5Jm5X3V5kZfskkH+LI7mSQe8tEyxwgCvxbxvFe5adinA3K8Gg=="],
+    "@myriaddreamin/typst-ts-web-compiler": ["@myriaddreamin/typst-ts-web-compiler@0.7.0", "", {}, "sha512-nMwMcfOBy5pABPDuVM7/u8425SxhPUM+OJe6daqqgVOT3+neCTz4JKwx2L8XasfEHTNvd0cUI07LR9q5ADo7Gw=="],
 
-    "@myriaddreamin/typst.ts": ["@myriaddreamin/typst.ts@0.6.0", "", { "dependencies": { "idb": "^7.1.1" }, "peerDependencies": { "@myriaddreamin/typst-ts-renderer": "^0.6.0", "@myriaddreamin/typst-ts-web-compiler": "^0.6.0" }, "optionalPeers": ["@myriaddreamin/typst-ts-renderer", "@myriaddreamin/typst-ts-web-compiler"] }, "sha512-IUpetG0NyF2H6eXRm4j+NsbanJHIvyrffHEijqYb6q128sLWQgT1FYJS+h7dtjXmrBEfnIl1mI80DyfDR6kB/w=="],
+    "@myriaddreamin/typst.ts": ["@myriaddreamin/typst.ts@0.7.0", "", { "dependencies": { "idb": "^7.1.1" }, "peerDependencies": { "@myriaddreamin/typst-ts-renderer": "^0.7.0", "@myriaddreamin/typst-ts-web-compiler": "^0.7.0" }, "optionalPeers": ["@myriaddreamin/typst-ts-renderer", "@myriaddreamin/typst-ts-web-compiler"] }, "sha512-JtO5Td/1QesH1IBKAZtbayFNK8u2sl3iz18Y67uYqBEdcXiu3z+wpZcDDKlmVJvAcCgSjHTnuk6ZLfkYclrGGQ=="],
 
     "@sindresorhus/is": ["@sindresorhus/is@4.6.0", "", {}, "sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw=="],
 

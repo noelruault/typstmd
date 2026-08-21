@@ -1,0 +1,17 @@
+# Typstmd
+
+> Markdown to PDF converter with two front-ends: a web app that compiles entirely in the browser (markdown → remark → Typst → Typst WASM compiler → PDF, no server, documents never leave the machine) and a CLI (markdown → Pandoc → Typst → PDF).
+
+The web app lives at https://noelruault.github.io/typstmd/. Every document it emits is standalone Typst that compiles with the upstream compiler. Templates are built-in themes, pinned Typst Universe starters, or any .typ file dropped onto the page.
+
+## Documentation
+
+- [README](https://raw.githubusercontent.com/noelruault/typstmd/main/README.md): CLI prerequisites and usage
+- [Agent guide](https://raw.githubusercontent.com/noelruault/typstmd/main/AGENTS.md): project context for AI agents
+- [Architecture notes](https://raw.githubusercontent.com/noelruault/typstmd/main/CLAUDE.md): pipelines, themes, test layers, design rules
+
+## Source
+
+- [Repository](https://github.com/noelruault/typstmd): GitHub source
+- [Web pipeline](https://github.com/noelruault/typstmd/tree/main/web): browser front-end (Bun + remark + Typst WASM compiler)
+- [CLI pipeline](https://github.com/noelruault/typstmd/tree/main/cmd): shell front-end (Pandoc + Typst)

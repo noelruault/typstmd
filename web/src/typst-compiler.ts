@@ -39,9 +39,10 @@ const DEFAULT_FONTS: FontSpec = { assets: ["text"], urls: [] };
  * URL where the WASM binary is served. Relative so it works under any
  * base path (dev server, GitHub Pages subpath, custom domain).
  */
+// self.location in a worker (no document there); document.baseURI on the main thread. Both resolve to the same site-root sibling.
 const WASM_URL = new URL(
   "./typst_ts_web_compiler_bg.wasm",
-  document.baseURI,
+  typeof document !== "undefined" ? document.baseURI : self.location.href,
 ).href;
 
 function formatDiagnostics(diagnostics: unknown): string[] {
@@ -119,12 +120,10 @@ export function createCompiler(
 
       inner.addSource("/main.typ", source);
 
-      // The compile return type depends on typst.ts version:
-      // - v0.5.x may return Uint8Array directly or {result, diagnostics}
-      // - v0.6.x returns CompileResult<Uint8Array, D>
+      // 1 is CompileFormatEnum.pdf; 0.7.0 stopped re-exporting the enum, so the value is inlined.
       const raw: unknown = await inner.compile({
         mainFilePath: "/main.typ",
-        format: "pdf",
+        format: 1 as never,
         diagnostics: "full",
       });
 

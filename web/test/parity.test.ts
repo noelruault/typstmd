@@ -28,27 +28,27 @@ function pandocAvailable(): boolean {
   return spawnSync("pandoc", ["--version"], { encoding: "utf-8" }).status === 0;
 }
 
-function viaCli(markdown: string): string {
-  const proc = spawnSync(
-    "pandoc",
-    [
-      "-f",
-      READER_DIALECT,
-      "-t",
-      "typst",
-      "--lua-filter",
-      join(REPO_ROOT, "cmd/filters/table.lua"),
-      "--lua-filter",
-      join(REPO_ROOT, "cmd/filters/pagebreak.lua"),
-    ],
-    { input: markdown, encoding: "utf-8" },
-  );
+function viaCli(markdown: string, mermaid = false): string {
+  const args = [
+    "-f",
+    READER_DIALECT,
+    "-t",
+    "typst",
+    "--lua-filter",
+    join(REPO_ROOT, "cmd/filters/table.lua"),
+    "--lua-filter",
+    join(REPO_ROOT, "cmd/filters/pagebreak.lua"),
+    "--lua-filter",
+    join(REPO_ROOT, "cmd/filters/mermaid.lua"),
+  ];
+  if (mermaid) args.push("-M", "mermaid=true");
+  const proc = spawnSync("pandoc", args, { input: markdown, encoding: "utf-8" });
   if (proc.status !== 0) throw new Error(`pandoc failed: ${proc.stderr}`);
   return proc.stdout;
 }
 
-function viaWeb(markdown: string): string {
-  const { typstSource } = markdownToTypst(markdown, { templateOverride: "" });
+function viaWeb(markdown: string, mermaid = false): string {
+  const { typstSource } = markdownToTypst(markdown, { templateOverride: "", mermaid });
   return typstSource;
 }
 
@@ -84,13 +84,9 @@ const CASES: { name: string; markdown: string }[] = [
   { name: "emoji shortcode", markdown: "shipping :rocket: today" },
   { name: "bullet list", markdown: "- one\n- two\n- three" },
   { name: "blockquote", markdown: "> quoted line" },
-  {
-    // Both front-ends print the source as a raw block. The CLI's opt-in --mermaid flag renders
-    // it to a PNG instead, which is the one place the two deliberately differ.
-    name: "mermaid block",
-    markdown: '```mermaid\nxychart-beta\n  bar [2, 1, 3]\n```',
-  },
 ];
+
+const MERMAID = '```mermaid\nxychart-beta\n  bar [2, 1, 3]\n```';
 
 describe.if(pandocAvailable())("CLI and web agree", () => {
   for (const { name, markdown } of CASES) {
@@ -106,6 +102,19 @@ describe.if(pandocAvailable())("CLI and web agree", () => {
     expect(viaWeb("shipping :rocket: today")).toMatch(EMOJI_RULE);
     expect(viaCli("shipping :rocket: today")).not.toMatch(EMOJI_RULE);
     expect(viaWeb("no emoji here")).not.toMatch(EMOJI_RULE);
+  });
+
+  // Mermaid is gated by the same switch on both sides: off prints the source, on injects merman. Either state must agree.
+  it("agrees on mermaid with the switch off: both print the source", () => {
+    expect(normalise(viaWeb(MERMAID, false))).toBe(normalise(viaCli(MERMAID, false)));
+  });
+
+  it("agrees on mermaid with the switch on: both render via merman", () => {
+    const web = normalise(viaWeb(MERMAID, true));
+    const cli = normalise(viaCli(MERMAID, true));
+    expect(web).toBe(cli);
+    expect(web).toContain("@preview/merman");
+    expect(web).toContain("show-mermaid-blocks");
   });
 
   it("documents the one divergence: a browser cannot read a local image path", () => {
