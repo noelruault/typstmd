@@ -1,5 +1,6 @@
 import type { FontSpec } from "./typst-compiler";
 import { compileInWorker } from "./compile-client";
+import { AGENT_ONBOARDING_PROMPT } from "./agent-onboarding";
 import { markdownToTypst } from "./pipeline";
 import { getTheme, themes, EMOJI_FONT } from "./themes/index";
 import { starters, getStarter } from "./starters";
@@ -18,7 +19,7 @@ import {
   hasUserTemplate,
   saveUserTemplate,
 } from "./user-templates";
-import { fetchImages, scanImageUrls } from "./resources";
+import { fetchImages, scanImageUrls, prefetchCompilerWasm } from "./resources";
 import {
   getCustomTemplate,
   setCustomTemplate,
@@ -101,6 +102,7 @@ const wrapLinesToggle = document.getElementById(
 ) as HTMLInputElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
 const darkToggle = document.getElementById("dark-toggle") as HTMLButtonElement;
+const onboardAgentBtn = document.getElementById("onboard-agent") as HTMLButtonElement;
 const highlightSelect = document.getElementById(
   "highlight-select",
 ) as HTMLSelectElement;
@@ -183,6 +185,28 @@ function pdfFilenameStem(): string {
 function setStatus(msg: string, kind: "info" | "error" | "loading" = "info") {
   statusEl.textContent = msg;
   statusEl.className = kind === "info" ? "" : kind;
+}
+
+// execCommand fallback covers non-secure contexts, where navigator.clipboard is undefined.
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
 }
 
 // Centralized UI update for template-related buttons.
@@ -467,6 +491,16 @@ templateSelect.addEventListener("change", () => {
   doCompile();
 });
 
+onboardAgentBtn.addEventListener("click", async () => {
+  const copied = await copyText(AGENT_ONBOARDING_PROMPT);
+  setStatus(
+    copied
+      ? "Agent prompt copied. Paste it into Claude Code, Codex, Cursor, or OpenCode."
+      : "Could not access the clipboard. Copy the prompt from src/agent-onboarding.ts.",
+    copied ? "info" : "error",
+  );
+});
+
 hardBreaksToggle.addEventListener("change", doCompile);
 
 const WRAP_LINES_KEY = "typstmd:wrap-lines";
@@ -639,8 +673,15 @@ async function init() {
 
   updateTemplateUi();
   try {
-    // The worker inits lazily on the first compile, so there is no separate warm-up step.
     convertBtn.disabled = false;
+
+    // Pull the ~11 MB compiler into cache with visible progress first, so the worker's fetch is a cache hit and its compile timeout never races a slow download. Non-fatal: on failure the worker fetches it itself.
+    setStatus("Downloading compiler (one-time)…", "loading");
+    try {
+      await prefetchCompilerWasm((mb) => setStatus(`Downloading compiler… ${mb} MB`, "loading"));
+    } catch {
+      /* fall through to compile; the worker will fetch the WASM itself */
+    }
 
     performance.mark("first-compile-start");
     await doCompile();

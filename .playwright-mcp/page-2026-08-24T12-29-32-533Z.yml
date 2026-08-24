@@ -1,0 +1,77 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "typstmd" [level=1] [ref=e3]
+    - button "Convert" [ref=e4] [cursor=pointer]
+    - combobox "Editor highlight theme" [ref=e5]:
+      - option "Ayu Light" [selected]
+      - option "One Light"
+    - generic [ref=e6] [cursor=pointer]:
+      - checkbox "Hard breaks" [checked] [ref=e7]
+      - text: Hard breaks
+    - generic [ref=e8] [cursor=pointer]:
+      - checkbox "Wrap lines" [ref=e9]
+      - text: Wrap lines
+    - 'combobox "Template: a built-in theme, a Typst Universe package, or one of yours" [ref=e10]':
+      - option "Default" [selected]
+      - option "Minimal"
+      - option "Academic"
+      - option "IEEE"
+      - option "Aitelier"
+      - option "Pentest report"
+      - 'option "Universe: basic-resume"'
+      - 'option "Universe: charged-ieee"'
+      - 'option "Universe: graceful-genetics (Oxford masthead)"'
+      - 'option "Universe: dashing-dept-news"'
+    - generic "Use any .typ file as the template" [ref=e11] [cursor=pointer]: Open .typ
+    - button "🌙" [ref=e12] [cursor=pointer]
+    - button "Template" [ref=e13] [cursor=pointer]
+    - button "Source" [ref=e14] [cursor=pointer]
+    - link "Download PDF" [ref=e69] [cursor=pointer]:
+      - /url: blob:https://noelruault.github.io/3d08f410-84c5-4044-a28d-78e806c64684
+  - generic [ref=e15]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: "1"
+          - generic [ref=e22]: "2"
+          - generic [ref=e23]: "3"
+          - generic [ref=e24]: "4"
+          - generic [ref=e25]: "5"
+          - generic [ref=e26]: "6"
+          - generic [ref=e27]: "7"
+          - generic [ref=e28]: "8"
+          - generic [ref=e29]: "9"
+          - generic [ref=e30]: "10"
+          - generic [ref=e31]: "11"
+          - generic [ref=e32]: "12"
+          - generic [ref=e33]: "13"
+          - generic [ref=e34]: "14"
+          - generic [ref=e35]: "15"
+          - generic [ref=e36]: "16"
+          - generic [ref=e37]: "17"
+          - generic [ref=e38]: "18"
+          - generic [ref=e39]: "19"
+          - generic [ref=e40]: "20"
+        - generic [ref=e41]:
+          - generic [ref=e42]: ⌄
+          - generic [ref=e43]: ⌄
+          - generic [ref=e44]: ⌄
+      - textbox [ref=e45]:
+        - generic [ref=e46]: "# Hello from typstmd"
+        - generic [ref=e48]: This PDF was compiled **entirely in the browser** using the Typst WASM compiler.
+        - generic [ref=e50]: "## Features"
+        - generic [ref=e52]: "- Markdown parsing via `unified`/`remark`"
+        - generic [ref=e53]: "- *Emphasis* and **strong** text"
+        - generic [ref=e54]: "- [Links](https://github.com)"
+        - generic [ref=e55]: "- Fenced code blocks"
+        - generic [ref=e56]: "- GFM tables and footnotes"
+        - generic [ref=e58]: "```js"
+        - generic [ref=e59]: const greeting = "Hello, world!";
+        - generic [ref=e60]: console.log(greeting);
+        - generic [ref=e61]: "```"
+        - generic [ref=e63]: "---"
+        - generic [ref=e65]: _Phase 2 - markdown pipeline works._
+    - iframe [ref=e67]:
+      
+  - generic [ref=e68]: Compiled (38.1 KB)
+  - generic: Drop .md to load, .typ to use as the template, anything else as an image

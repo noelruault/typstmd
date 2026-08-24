@@ -10,7 +10,7 @@ import {
   MemoryAccessModel,
   FetchPackageRegistry,
 } from "@myriaddreamin/typst.ts";
-import { packageCacheRef } from "./resources";
+import { packageCacheRef, WASM_URL } from "./resources";
 
 export interface TypstCompiler {
   init(): Promise<void>;
@@ -39,12 +39,6 @@ const DEFAULT_FONTS: FontSpec = { assets: ["text"], urls: [] };
  * URL where the WASM binary is served. Relative so it works under any
  * base path (dev server, GitHub Pages subpath, custom domain).
  */
-// self.location in a worker (no document there); document.baseURI on the main thread. Both resolve to the same site-root sibling.
-const WASM_URL = new URL(
-  "./typst_ts_web_compiler_bg.wasm",
-  typeof document !== "undefined" ? document.baseURI : self.location.href,
-).href;
-
 function formatDiagnostics(diagnostics: unknown): string[] {
   if (!diagnostics) return ["Unknown compilation error"];
   if (typeof diagnostics === "string") return [diagnostics];

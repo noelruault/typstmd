@@ -95,3 +95,32 @@ export async function fetchPackages(specs: string[]): Promise<Map<string, Uint8A
 export function packageCacheRef(): Map<string, Uint8Array> {
   return packageCache;
 }
+
+// Resolved relative so it works under any base path; document.baseURI on the main thread, self.location in a worker.
+// The final fallback keeps module load from throwing under the test runner, where neither global exists; the URL is unused there.
+export const WASM_URL = new URL(
+  "./typst_ts_web_compiler_bg.wasm",
+  typeof document !== "undefined"
+    ? document.baseURI
+    : typeof self !== "undefined" && self.location
+      ? self.location.href
+      : "http://localhost/",
+).href;
+
+// prefetchCompilerWasm warms the HTTP cache so the worker's fetch is a cache hit, keeping the worker's compile timeout off the one-time download.
+// onProgress reports MB, not %: content-length is the gzipped size but the drained body is decompressed bytes, so the total is unknown here.
+export async function prefetchCompilerWasm(onProgress?: (mb: number) => void): Promise<void> {
+  const res = await fetch(WASM_URL);
+  if (!res.ok || !res.body) {
+    await res.arrayBuffer().catch(() => {});
+    return;
+  }
+  const reader = res.body.getReader();
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    onProgress?.(Math.round(bytes / 1_048_576));
+  }
+}

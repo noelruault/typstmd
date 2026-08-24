@@ -114,7 +114,7 @@ Template-view edits are stored per selection (`typstmd:template:theme:aitelier`)
 
 Any `.typ` file is a template: drop it on the page or use **Open .typ**. It is saved under its filename (`typstmd:user-template:<name>`, see `src/user-templates.ts`), listed in the toolbar picker under "Yours" beside the built-in starters, and re-adding the same name asks before replacing it. `src/dropped-file.ts` decides what a brought-in file is: `.typ` is a template, markdown is the document, anything else is an image mapped into the VFS.
 
-Persistence is `localStorage`, so it is per-browser. Publishing a dropped template so others can use it is the Cloudflare storage work in `.plans/3-cloudflare-worker-optional-storage` and `.plans/7-cloudflare-hosted-conversion`, not this.
+Persistence is `localStorage`, so it is per-browser. Publishing a dropped template so others can use it is the Cloudflare storage work in `.plans/2026-04-17-cloudflare-worker-optional-storage` and `.plans/2026-07-14-cloudflare-hosted-conversion`, not this.
 
 ## Universe starters
 

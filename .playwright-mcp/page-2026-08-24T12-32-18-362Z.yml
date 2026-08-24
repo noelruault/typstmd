@@ -1,0 +1,56 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - heading "typstmd" [level=1] [ref=e3]
+    - button "Convert" [ref=e4] [cursor=pointer]
+    - combobox "Editor highlight theme" [ref=e5]:
+      - option "Ayu Light" [selected]
+      - option "One Light"
+    - generic [ref=e6] [cursor=pointer]:
+      - checkbox "Hard breaks" [checked] [ref=e7]
+      - text: Hard breaks
+    - generic [ref=e8] [cursor=pointer]:
+      - checkbox "Wrap lines" [ref=e9]
+      - text: Wrap lines
+    - 'combobox "Template: a built-in theme, a Typst Universe package, or one of yours" [ref=e10]':
+      - option "Default" [selected]
+      - option "Minimal"
+      - option "Academic"
+      - option "IEEE"
+      - option "Aitelier"
+      - option "Pentest report"
+      - 'option "Universe: basic-resume"'
+      - 'option "Universe: charged-ieee"'
+      - 'option "Universe: graceful-genetics (Oxford masthead)"'
+      - 'option "Universe: dashing-dept-news"'
+    - generic "Use any .typ file as the template" [ref=e11] [cursor=pointer]: Open .typ
+    - button "🌙" [ref=e12] [cursor=pointer]
+    - button "Template" [ref=e13] [cursor=pointer]
+    - button "Source" [ref=e14] [cursor=pointer]
+    - link "Download PDF" [ref=e69] [cursor=pointer]:
+      - /url: blob:https://noelruault.github.io/77795926-e64e-482b-a9bc-027e3930a2e4
+  - generic [ref=e15]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: "1"
+          - generic [ref=e22]: "2"
+          - generic [ref=e23]: "3"
+          - generic [ref=e24]: "4"
+          - generic [ref=e25]: "5"
+          - generic [ref=e26]: "6"
+          - generic [ref=e27]: "7"
+          - generic [ref=e28]: "8"
+        - generic [ref=e41]:
+          - generic [ref=e42]: ⌄
+          - generic [ref=e43]: ⌄
+      - textbox [active] [ref=e45]:
+        - generic [ref=e46]: "# Mermaid test"
+        - generic [ref=e71]: "```mermaid"
+        - generic [ref=e72]: pie title Pets
+        - generic [ref=e73]: "\"Dogs\": 386"
+        - generic [ref=e74]: "\"Cats\": 85"
+        - generic [ref=e75]: "```"
+    - iframe [ref=e67]:
+      
+  - generic [ref=e68]: Compiled (19.7 KB)
+  - generic: Drop .md to load, .typ to use as the template, anything else as an image

@@ -15,7 +15,7 @@ tags: [distribution, cloudflare, optional]
 notes: >-
   Contradicts the standing client-only distribution decision (see memory
   project_distribution-client-only). This is the "if we change our mind" spec,
-  not a commitment. Overlaps in scope with .plans/3-cloudflare-worker-optional-storage.
+  not a commitment. Overlaps in scope with .plans/2026-04-17-cloudflare-worker-optional-storage.
 ---
 
 ## 1. Summary
@@ -93,7 +93,7 @@ Deploy the Docker image (pandoc + typst + filters + template + fonts, or a typst
 - **Font loading** — omit it → output differs from the UI.
 - **typst-WASM version drift** — Worker and web app must pin the *same* compiler version or outputs diverge.
 - **Cost** — not free; contradicts the client-only free posture. Must be a deliberate choice.
-- **Scope overlap** with `.plans/3-cloudflare-worker-optional-storage` — decide whether convert lives in that Worker or a standalone one, so there aren't two competing deploys.
+- **Scope overlap** with `.plans/2026-04-17-cloudflare-worker-optional-storage` — decide whether convert lives in that Worker or a standalone one, so there aren't two competing deploys.
 
 ## 5. Open questions
 

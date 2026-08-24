@@ -12,9 +12,12 @@
 
 import { join } from "node:path";
 import { themesPlugin } from "./plugins/themes";
+import { generateContentThemesRegistry } from "./plugins/content-themes";
 
 const ROOT = import.meta.dir;
 const DIST = join(ROOT, "dist");
+
+generateContentThemesRegistry(join(ROOT, "src/themes"));
 
 const result = await Bun.build({
   entrypoints: [join(ROOT, "src/main.ts"), join(ROOT, "src/compile-worker.ts")],

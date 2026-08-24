@@ -1,6 +1,6 @@
 # Handoff: typst parity work
 
-Companion to `typst-parity.md` (that plan is `status: executed`). Everything below is committed and local; **nothing is pushed**.
+Companion to `plan.md` (the typst-parity plan, `status: executed`). Everything below is committed and local; **nothing is pushed**.
 
 ## Where the work is
 
@@ -59,7 +59,7 @@ cd website/resume && ./check-links.sh && bun run build
 3. **Charts for the pentest theme.** Reference has severity-distribution and risk-type bars. A bar chart is ~20 lines of plain Typst using `layout()` and `rect` (prototyped, works); cetz is 126 KB and only earns its place for axes and scatter. Needs a data convention, e.g. a 2-column table whose second column is numeric.
 4. **`resume/` still lives in the deploy output repo.** It is committed on a branch now, so it survives, but `gh-pages` is force-pushed by the Hugo deploy. The durable home is `webpage/static/resume/`. Unresolved since the plan was written.
 5. **Two pentest-theme fidelity gaps**, both deliberate: all `#` headings are regular weight (the reference sets finding titles bold and section titles regular; Markdown cannot distinguish, a heuristic on "starts with Finding" is possible), and the metadata card shows row hairlines the reference lacks (one global `set table(stroke:)` serves both table kinds and the stroke function only sees coordinates).
-6. **Push, and this plan's location.** Nothing is pushed. This file sits in a dated `.plans/2026-08-18/` directory while the repo's other plans use numbered ones (`1-…` through `7-…`).
+6. **Push, and this plan's location.** Nothing is pushed. ~~This file sits in a dated `.plans/2026-08-18/` directory while the repo's other plans use numbered ones (`1-…` through `7-…`).~~ Resolved 2026-08-24: every plan now lives in its own `.plans/YYYY-MM-DD-<slug>/plan.md` bundle, dated by frontmatter `created` or first git commit. Push still pending.
 
 ## Typst facts learned the hard way
 

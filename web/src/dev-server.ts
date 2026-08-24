@@ -9,6 +9,7 @@
 import { existsSync } from "fs";
 import { join, extname } from "path";
 import { themesPlugin } from "../plugins/themes";
+import { generateContentThemesRegistry } from "../plugins/content-themes";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, ".dev-dist");
@@ -27,6 +28,8 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "credentialless",
 };
+
+generateContentThemesRegistry(join(ROOT, "src/themes"));
 
 // Bundle src/main.ts
 async function bundle() {

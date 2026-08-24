@@ -1,0 +1,2 @@
+[     171ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4599/favicon.ico:0
+[     255ms] [WARNING] using deprecated parameters for the initialization function; pass a single object instead @ http://localhost:4599/compile-worker.js:1

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gen:themes": "bun scripts/gen-themes.ts",
+    "prepare": "bun scripts/gen-themes.ts",
     "dev": "bun run src/dev-server.ts --watch",
     "build": "bun run build.ts",
     "test": "bun test",

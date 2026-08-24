@@ -1,10 +1,4 @@
-/**
- * Theme registry.
- *
- * Each theme is a complete Typst template string containing a `conf()`
- * function and a `horizontalrule` definition. The pipeline plugs the
- * theme into the assembled Typst source as-is.
- */
+// Themes are auto-discovered from this folder (plugins/content-themes.ts), so a dropped file — including a private, gitignored one — registers with no edit here.
 
 /**
  * Fonts a theme's template names. Typst warns for every family it cannot resolve,
@@ -30,22 +24,17 @@ export const EMOJI_FONT = {
   url: "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@v2.047/fonts/NotoColorEmoji.ttf",
 } as const;
 
-import { defaultTheme } from "./default";
-import { minimalTheme } from "./minimal";
-import { academicTheme } from "./academic";
-import { ieeeTheme } from "./ieee";
-import { aitelierTheme } from "./aitelier";
-import { pentestTheme } from "./pentest";
+import { allThemes } from "./registry.gen";
 
-export const themes: Theme[] = [
-  defaultTheme,
-  minimalTheme,
-  academicTheme,
-  ieeeTheme,
-  aitelierTheme,
-  pentestTheme,
-];
+// `default` first (it is the fallback and the initial selection); the rest alphabetical by name.
+export const themes: Theme[] = ([...allThemes] as Theme[]).sort((a, b) =>
+  a.id === "default" ? -1 : b.id === "default" ? 1 : a.name.localeCompare(b.name),
+);
 
 export function getTheme(id: string): Theme {
-  return themes.find((t) => t.id === id) ?? defaultTheme;
+  return (
+    themes.find((t) => t.id === id) ??
+    themes.find((t) => t.id === "default") ??
+    themes[0]
+  );
 }

@@ -535,7 +535,7 @@ Gate for every step: `bun test` stays at 139+ pass / 0 fail, and no step regress
 - **Where does the website work land?** `resume/` is untracked on the `website` gh-pages checkout and will be wiped by the next deploy. Moving it into `webpage/static/resume/` (the Hugo source) is the durable fix. This is the one decision still blocking §2.9-§2.12 being committed anywhere.
 - **Do the CI installs get pinned versions?** §2.8 argues yes, because a render assertion is only reproducible against a known `typst`, and Typst's default font can change between releases. Pinning means a manual bump when Typst updates.
 - **Emoji lazy-load behaviour in a browser** (from §2.4): confirm a failed or partial font fetch does not reject compiler init, before relying on it.
-- **Plan location.** This file sits at `.plans/2026-08-18/typst-parity.md`, while the repo's other plans use numbered directories (`1-…` through `7-…`). Say the word and it moves to `.plans/8-typst-parity/plan.md`.
+- **Plan location.** ~~This file sits at `.plans/2026-08-18/typst-parity.md`, while the repo's other plans use numbered directories (`1-…` through `7-…`).~~ Resolved 2026-08-24: every plan lives in its own `.plans/YYYY-MM-DD-<slug>/plan.md` bundle; this one is `.plans/2026-08-18-typst-parity/`.
 
 ### Decisions taken during the walkthrough
 

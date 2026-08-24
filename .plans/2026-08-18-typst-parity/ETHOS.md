@@ -1,6 +1,6 @@
 # Ethos critique: execution of feature/typst-parity
 
-Companion to `typst-parity.md` and `HANDOFF.md`. Critique of how the branch was executed, not of the product. Written 2026-08-21 against head `1c266c2` plus the then-uncommitted worker/mermaid work.
+Companion to `plan.md` (the typst-parity plan) and `HANDOFF.md`. Critique of how the branch was executed, not of the product. Written 2026-08-21 against head `1c266c2` plus the then-uncommitted worker/mermaid work.
 
 Evidence base, verified at time of writing: 17 commits, 3739 insertions committed, ~120 lines plus 4 new files uncommitted, `bun test` 262 pass / 0 fail, `tsc` clean, branch has no upstream, CI never triggered.
 

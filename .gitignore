@@ -83,3 +83,8 @@ vendor/
 .TemporaryItems
 .Trashes
 .VolumeIcon.icns
+
+# Private theme (local only, not published)
+web/src/themes/webbeds/
+web/src/themes/webbeds.ts
+web/src/themes/registry.gen.ts
