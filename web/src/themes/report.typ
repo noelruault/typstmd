@@ -1,22 +1,3 @@
-import type { Theme } from "./index";
-
-// Arimo is metric-compatible with Helvetica, which is what the reports this mirrors are set in, and it is OFL. Static faces, not the variable file: Typst warns that variable fonts are unsupported and silently drops bold.
-const ARIMO = "https://cdn.jsdelivr.net/npm/@expo-google-fonts/arimo@0.2.3";
-
-export const pentestTheme: Theme = {
-  id: "pentest",
-  name: "Pentest report",
-  fonts: {
-    families: ["Arimo", "DejaVu Sans Mono"],
-    assets: ["text"],
-    urls: [
-      `${ARIMO}/Arimo_400Regular.ttf`,
-      `${ARIMO}/Arimo_700Bold.ttf`,
-      `${ARIMO}/Arimo_400Regular_Italic.ttf`,
-      `${ARIMO}/Arimo_700Bold_Italic.ttf`,
-    ],
-  },
-  template: `
 #let conf(
   title: none,
   authors: (),
@@ -101,11 +82,11 @@ export const pentestTheme: Theme = {
   show raw.where(block: true): set par(leading: 0.6em, spacing: 0.6em)
   show raw.where(block: true): set block(inset: (left: 0.6em, y: 0.4em))
   show raw.where(block: true): it => {
-    show regex(","): m => m.text + "\u{200B}"
+    show regex(","): m => m.text + "​"
     it
   }
   show raw.where(block: false): it => {
-    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    show regex("[-_./:]"): m => m.text + "​"
     it
   }
 
@@ -226,7 +207,7 @@ export const pentestTheme: Theme = {
         #place(bottom + left, dx: 1.15in, dy: -1in)[
           #set text(size: 9pt, fill: muted)
           #if authors.len() > 0 [#authors.map(a => a.name).join(", ")]
-          #if classification != none [ \\ #classification ]
+          #if classification != none [ \ #classification ]
         ]
       ]
     ]
@@ -253,5 +234,3 @@ export const pentestTheme: Theme = {
 
   doc
 }
-`,
-};

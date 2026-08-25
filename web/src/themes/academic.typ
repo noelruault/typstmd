@@ -1,10 +1,3 @@
-import type { Theme } from "./index";
-
-export const academicTheme: Theme = {
-  id: "academic",
-  name: "Academic",
-  fonts: { families: ["New Computer Modern"], assets: ["text"] },
-  template: `
 #let conf(
   title: none,
   authors: (),
@@ -63,11 +56,11 @@ export const academicTheme: Theme = {
   show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
   // Break long space-less comma runs (numeric IN-lists) so they wrap instead of overflowing; without a break point Typst drops the indent and opens a gap. Trade-off: copied code carries these invisible breaks.
   show raw.where(block: true): it => {
-    show regex(","): m => m.text + "\u{200B}"
+    show regex(","): m => m.text + "​"
     it
   }
   show raw.where(block: false): it => {
-    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    show regex("[-_./:]"): m => m.text + "​"
     it
   }
 
@@ -152,5 +145,3 @@ export const academicTheme: Theme = {
 
   doc
 }
-`,
-};

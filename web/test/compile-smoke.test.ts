@@ -190,7 +190,7 @@ describe("compile smoke tests", () => {
 
   it("all three themes compile", () => {
     const md = "# Hello\n\nWorld.\n\n---\n\n| A | B |\n|---|---|\n| 1 | 2 |";
-    for (const themeId of ["default", "minimal", "academic"]) {
+    for (const themeId of ["default", "aitelier", "academic"]) {
       const { typstSource } = markdownToTypst(md, { themeId });
       const result = compileTypst(typstSource);
       if (!result.ok) throw new Error(`theme ${themeId} failed: ${result.stderr}`);

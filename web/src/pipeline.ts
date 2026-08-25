@@ -67,8 +67,9 @@ function assemble(
   }
 
   // No conf to receive metadata, so document properties go through Typst's own mechanism.
+  // The set must precede the template: a starter ending in `#show: tmpl.with(...)` turns everything after into a container, and `set document` inside a container is a hard error.
   return {
-    preamble: [template, encodeDocumentSet(metadata)].filter((p) => p !== "").join("\n\n"),
+    preamble: [encodeDocumentSet(metadata), template].filter((p) => p !== "").join("\n\n"),
     bodyWrapper: (body) => body,
   };
 }

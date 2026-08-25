@@ -1,7 +1,16 @@
 import { describe, it, expect } from "bun:test";
-import { themes, getTheme } from "../src/themes";
+import { themes, getTheme, FONT_URLS } from "../src/themes";
 import { starters, getStarter } from "../src/starters";
 import { markdownToTypst } from "../src/pipeline";
+
+// Fonts a theme may name: Typst's embedded set (`typst fonts --ignore-system-fonts`) plus the CDN faces fontsFor loads by URL. Anything else renders a fallback.
+const ALLOWED_FONTS = [
+  "Libertinus Serif",
+  "New Computer Modern",
+  "New Computer Modern Math",
+  "DejaVu Sans Mono",
+  ...Object.keys(FONT_URLS),
+];
 
 describe("theme registry", () => {
   it("has unique ids", () => {
@@ -23,18 +32,14 @@ describe("theme registry", () => {
         expect(theme.template).toMatch(/doc,\s*\)\s*=/);
       });
 
-      it("declares every font family it names", () => {
-        expect(theme.fonts.families.length).toBeGreaterThan(0);
-        for (const family of theme.fonts.families) {
-          expect(theme.template).toContain(family);
-        }
-      });
-
-      it("names no font outside its declared set", () => {
-        // Typst warns for every family it cannot resolve, used or not.
-        const named = [...theme.template.matchAll(/font: "([^"]+)"/g)].map((m) => m[1]);
+      it("names only fonts it can load", () => {
+        // Embedded or a FONT_URLS CDN face; anything else renders a fallback.
+        const named = [
+          ...theme.template.matchAll(/(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g),
+        ].map((m) => m[1]);
+        expect(named.length).toBeGreaterThan(0);
         for (const family of named) {
-          expect(theme.fonts.families).toContain(family);
+          expect(ALLOWED_FONTS).toContain(family);
         }
       });
 

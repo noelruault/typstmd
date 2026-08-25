@@ -25,6 +25,14 @@ describe("template assembly", () => {
     expect(typstSource).toContain('#set document(title: "A Title", author: ("Someone",))');
   });
 
+  it("puts set document before a show-with template rule so it is not inside a container", () => {
+    const template = `#import "@preview/x:0.1.0": tmpl\n#show: tmpl.with(title: [T])`;
+    const md = "---\ntitle: A Title\n---\n\nBody.";
+    const { typstSource } = markdownToTypst(md, { templateOverride: template });
+    expect(typstSource).toContain("#set document(");
+    expect(typstSource.indexOf("#set document(")).toBeLessThan(typstSource.indexOf("#show: tmpl.with"));
+  });
+
   it("substitutes the body marker when a template places content itself", () => {
     const template = `#set page(paper: "a4")\n#block[#typstmd-body]`;
     const { typstSource } = markdownToTypst("Body.", { templateOverride: template });
