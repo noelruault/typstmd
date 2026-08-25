@@ -47,7 +47,10 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      # Themes compile offline (embedded fonts); the flag additionally compiles the Universe starters, which must fetch their packages.
       - run: bun test
+        env:
+          TYPSTMD_NETWORK_TESTS: "1"
 
       # Informational: absolute timings are machine-specific, so a laptop baseline cannot gate a CI runner. The committed baseline is the local gate.
       - run: bun run bench:report

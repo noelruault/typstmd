@@ -7,10 +7,14 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { markdownToTypst } from "../src/pipeline";
-import { themes } from "../src/themes";
+import { themes, FONT_URLS, EMOJI_FONT } from "../src/themes";
 import { starters } from "../src/starters";
 
-const EMOJI_FONT_DIR = process.env.TYPSTMD_EMOJI_FONT_DIR;
+const EMBEDDED = ["Libertinus Serif", "New Computer Modern", "New Computer Modern Math", "DejaVu Sans Mono"];
+const namedFonts = (t: string) =>
+  [...new Set([...t.matchAll(/(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g)].map((m) => m[1]))];
+// Set once the CDN faces are fetched (only under NETWORK); render() adds it as a --font-path.
+let fontsDir: string | null = null;
 
 function has(bin: string, args: string[] = ["--version"]): boolean {
   try {
@@ -25,24 +29,17 @@ const canCompile = has("typst");
 const canInspect = has("pdftotext", ["-v"]) && has("pdffonts", ["-v"]);
 let tmpDir: string;
 
-const fontDirs = new Map<string, string>();
 const NETWORK = process.env.TYPSTMD_NETWORK_TESTS === "1";
 
 beforeAll(async () => {
   tmpDir = mkdtempSync(join(tmpdir(), "typstmd-render-"));
-
   if (!NETWORK) return;
-  for (const theme of themes) {
-    const urls = theme.fonts.urls ?? [];
-    if (urls.length === 0) continue;
-    const dir = join(tmpDir, `fonts-${theme.id}`);
-    mkdirSync(dir, { recursive: true });
-    for (const url of urls) {
-      const response = await fetch(url);
-      if (!response.ok) continue;
-      writeFileSync(join(dir, url.split("/").pop()!), new Uint8Array(await response.arrayBuffer()));
-    }
-    fontDirs.set(theme.id, dir);
+  fontsDir = join(tmpDir, "fonts");
+  mkdirSync(fontsDir, { recursive: true });
+  for (const url of [...Object.values(FONT_URLS).flat(), EMOJI_FONT.url]) {
+    const res = await fetch(url);
+    if (!res.ok) continue;
+    writeFileSync(join(fontsDir, url.split("/").pop()!), new Uint8Array(await res.arrayBuffer()));
   }
 });
 
@@ -58,17 +55,14 @@ interface Rendered {
 }
 
 function render(markdown: string, themeId = "default"): Rendered {
-  const { typstSource, needsEmojiFont } = markdownToTypst(markdown, { themeId });
+  const { typstSource } = markdownToTypst(markdown, { themeId });
   const srcPath = join(tmpDir, `${themeId}-${Math.abs(hash(markdown))}.typ`);
   const pdfPath = srcPath.replace(/\.typ$/, ".pdf");
   writeFileSync(srcPath, typstSource, "utf-8");
 
   const args = ["compile", "--ignore-system-fonts"];
-  // The emoji face is fetched at runtime in the browser; tests need it on disk to render.
-  if (needsEmojiFont && EMOJI_FONT_DIR) args.push("--font-path", EMOJI_FONT_DIR);
-  // A theme may declare faces by URL, which the browser loads for it.
-  const themeFontDir = fontDirs.get(themeId);
-  if (themeFontDir) args.push("--font-path", themeFontDir);
+  // CDN faces (theme fonts by URL, emoji) live in the browser; the CLI reads them from disk when fetched.
+  if (fontsDir) args.push("--font-path", fontsDir);
   args.push(srcPath, pdfPath);
 
   // spawnSync, not execFileSync: warnings go to stderr on success and must be asserted on.
@@ -188,20 +182,21 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     "DejaVu Sans Mono": "DejaVuSansMono",
   };
 
+  // A theme naming only embedded faces compiles offline; one naming a CDN face needs those fetched first (NETWORK). Either way, assert each named face lands in the PDF, not a fallback.
   for (const theme of themes) {
-    // A theme whose faces come by URL can only be checked when those are fetchable.
-    const checkable = (theme.fonts.urls ?? []).length === 0 || NETWORK;
-    it.if(checkable)(`${theme.id}: names no font it cannot load`, () => {
+    const named = namedFonts(theme.template);
+    const needsNet = named.some((f) => !EMBEDDED.includes(f));
+    it.if(!needsNet || NETWORK)(`${theme.id}: names no font it cannot load`, () => {
       const { stderr, fonts } = render("# Title\n\nBody with `code`.\n", theme.id);
       expect(stderr).not.toContain("unknown font family");
-      for (const family of theme.fonts.families) {
+      for (const family of named) {
         expect(fonts).toContain(EMBEDDED_AS[family] ?? family);
       }
     });
   }
 
-  // Downloads packages, so it is opt-in: CI stays hermetic, but a hand-written preamble that invents a parameter is only caught by compiling it.
-  describe.if(process.env.TYPSTMD_NETWORK_TESTS === "1")("universe starters compile", () => {
+  // Needs the package registry (the one unavoidable network dependency); CI sets TYPSTMD_NETWORK_TESTS=1, locally it is opt-in.
+  describe.if(NETWORK)("universe starters compile", () => {
     for (const starter of starters) {
       it(starter.id, () => {
         const { typstSource } = markdownToTypst("= Section\n\nBody text.\n", {
@@ -224,7 +219,7 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     expect(text).not.toContain("showData");
   });
 
-  it.if(Boolean(EMOJI_FONT_DIR))("embeds the emoji face only when the document has emoji", () => {
+  it.if(NETWORK)("embeds the emoji face only when the document has emoji", () => {
     const withEmoji = render("Shipping :rocket: today.\n");
     expect(withEmoji.fonts).toContain("NotoColorEmoji");
     expect(withEmoji.stderr).not.toContain("unknown font family");

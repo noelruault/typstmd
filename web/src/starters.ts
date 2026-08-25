@@ -82,25 +82,6 @@ export const starters: Starter[] = [
 )
 `,
   },
-  {
-    id: "dashing-dept-news",
-    name: "Universe: dashing-dept-news",
-    spec: "dashing-dept-news:0.1.1",
-    preamble: `#import "@preview/dashing-dept-news:0.1.1": newsletter, article
-
-#show: newsletter.with(
-  title: [Department Newsletter],
-  edition: [
-    Month 1st, 2026 \\
-    Your College
-  ],
-  publication-info: [
-    The Dean of the Department. \\
-    #link("mailto:you@example.com")
-  ],
-)
-`,
-  },
 ];
 
 export function getStarter(id: string): Starter | undefined {

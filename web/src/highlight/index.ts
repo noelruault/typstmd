@@ -38,11 +38,17 @@ import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { allThemes } from "virtual:themes";
+import { typst } from "./typst";
 import type { HighlightTheme } from "./theme-builder";
 
+export type EditorLanguage = "markdown" | "typst";
+
+function languageExtension(lang: EditorLanguage): Extension {
+  return lang === "typst" ? typst() : markdown({ codeLanguages: languages });
+}
+
 // CodeMirror's `basicSetup` bundle, minus `highlightSelectionMatches()`.
-// That extension scans the whole document on every selection change to paint
-// echoes of the selected word. We don't want the CPU cost or the visual noise.
+// That extension scans the whole document on every selection change to paint echoes of the selected word. We don't want the CPU cost or the visual noise.
 const editorSetup: Extension = [
   lineNumbers(),
   highlightActiveLineGutter(),
@@ -82,6 +88,7 @@ export function getHighlightTheme(id: string): HighlightTheme {
 const themeConf = new Compartment();
 const readOnlyConf = new Compartment();
 const lineWrapConf = new Compartment();
+const languageConf = new Compartment();
 
 export function createEditorView(
   host: HTMLElement,
@@ -94,7 +101,7 @@ export function createEditorView(
     doc: initialValue,
     extensions: [
       editorSetup,
-      markdown({ codeLanguages: languages }),
+      languageConf.of(languageExtension("markdown")),
       themeConf.of(theme.extension),
       readOnlyConf.of(EditorState.readOnly.of(false)),
       lineWrapConf.of([]),
@@ -132,5 +139,11 @@ export function setHighlightTheme(view: EditorView, themeId: string): void {
 export function setLineWrap(view: EditorView, wrap: boolean): void {
   view.dispatch({
     effects: lineWrapConf.reconfigure(wrap ? EditorView.lineWrapping : []),
+  });
+}
+
+export function setLanguage(view: EditorView, lang: EditorLanguage): void {
+  view.dispatch({
+    effects: languageConf.reconfigure(languageExtension(lang)),
   });
 }

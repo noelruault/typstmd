@@ -1,10 +1,3 @@
-import type { Theme } from "./index";
-
-export const defaultTheme: Theme = {
-  id: "default",
-  name: "Default",
-  fonts: { families: ["Libertinus Serif"], assets: ["text"] },
-  template: `
 #let conf(
   title: none,
   authors: (),
@@ -64,12 +57,12 @@ export const defaultTheme: Theme = {
   show raw.where(block: true): set par(leading: 0.65em, spacing: 0.65em)
   // Break long space-less comma runs (numeric IN-lists) so they wrap instead of overflowing; without a break point Typst drops the indent and opens a gap. Trade-off: copied code carries these invisible breaks.
   show raw.where(block: true): it => {
-    show regex(","): m => m.text + "\u{200B}"
+    show regex(","): m => m.text + "​"
     it
   }
   // Allow inline code (long identifiers, paths, dotted names) to wrap inside narrow contexts like table cells by inserting zero-width breakpoints after common identifier separators.
   show raw.where(block: false): it => {
-    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    show regex("[-_./:]"): m => m.text + "​"
     it
   }
 
@@ -154,5 +147,3 @@ export const defaultTheme: Theme = {
 
   doc
 }
-`,
-};

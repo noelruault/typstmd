@@ -53,7 +53,7 @@ describe("pipeline integration", () => {
   it("switches themes", () => {
     const md = "# Hello";
     const def = markdownToTypst(md, { themeId: "default" });
-    const min = markdownToTypst(md, { themeId: "minimal" });
+    const min = markdownToTypst(md, { themeId: "aitelier" });
     const acad = markdownToTypst(md, { themeId: "academic" });
 
     // All produce different templates but same body

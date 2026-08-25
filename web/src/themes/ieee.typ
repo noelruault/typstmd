@@ -1,22 +1,3 @@
-import type { Theme } from "./index";
-
-// IEEE two-column proceedings theme.
-//
-// Page geometry is NOT invented — every margin, column width and gutter below is taken from the official IEEE margins reference
-// (ieee-pages-and-margins-2016.pdf) and cross-checks to the full page width:
-//   Letter: 0.625 + 3.5 + 0.25 + 3.5 + 0.625 in            = 8.5 in
-//   A4:     12.925 + 88.9 + 6.35 + 88.9 + 12.925 mm        = 210 mm
-// The 3.5 in (88.9 mm) columns fall out of the page margins + gutter, so we set the verified gutter and let Typst size the columns.
-//
-// Typography (10 pt Times body, justified, 1-pica indent, numbered headings 12/11/10 pt bold, one blank line before/after) follows the IEEE author kit.
-// Font is "Libertinus Serif" — the closest Times-metric serif in the browser Typst font bundle (real Times is not shipped to the WASM compiler).
-//
-// `paper` defaults to A4 to match the other themes; switch it to "us-letter" for the canonical IEEE camera-ready size.
-export const ieeeTheme: Theme = {
-  id: "ieee",
-  name: "IEEE",
-  fonts: { families: ["Libertinus Serif"], assets: ["text"] },
-  template: `
 #let conf(
   title: none,
   authors: (),
@@ -60,11 +41,11 @@ export const ieeeTheme: Theme = {
   show raw: set block(inset: (left: 1em, top: 0.4em, right: 0.4em, bottom: 0.4em))
   show raw.where(block: true): set par(leading: 0.5em, spacing: 0.5em)
   show raw.where(block: true): it => {
-    show regex(","): m => m.text + "\u{200B}"
+    show regex(","): m => m.text + "​"
     it
   }
   show raw.where(block: false): it => {
-    show regex("[-_./:]"): m => m.text + "\u{200B}"
+    show regex("[-_./:]"): m => m.text + "​"
     it
   }
 
@@ -150,5 +131,3 @@ export const ieeeTheme: Theme = {
   // Two-column body — the verified gutter yields the exact IEEE column width.
   columns(2, gutter: gutter, doc)
 }
-`,
-};

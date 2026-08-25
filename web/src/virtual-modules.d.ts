@@ -8,3 +8,9 @@ declare module "*.svg" {
   const content: string;
   export default content;
 }
+
+// Each theme is a .typ file, imported as text by the generated registry.
+declare module "*.typ" {
+  const content: string;
+  export default content;
+}

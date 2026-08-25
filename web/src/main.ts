@@ -2,7 +2,7 @@ import type { FontSpec } from "./typst-compiler";
 import { compileInWorker } from "./compile-client";
 import { AGENT_ONBOARDING_PROMPT } from "./agent-onboarding";
 import { markdownToTypst } from "./pipeline";
-import { getTheme, themes, EMOJI_FONT } from "./themes/index";
+import { getTheme, themes, EMOJI_FONT, FONT_URLS } from "./themes/index";
 import { starters, getStarter } from "./starters";
 import {
   formatSelection,
@@ -33,6 +33,7 @@ import {
   setReadOnly,
   setHighlightTheme,
   setLineWrap,
+  setLanguage,
   highlightThemes,
 } from "./highlight";
 import type { EditorView } from "@codemirror/view";
@@ -74,12 +75,13 @@ let viewMode: ViewMode = "editor";
 
 const unsavedBadge = document.getElementById("unsaved-badge") as HTMLSpanElement;
 const editorHost = document.getElementById("editor-host") as HTMLDivElement;
-const convertBtn = document.getElementById("convert-btn") as HTMLButtonElement;
-const viewToggle = document.getElementById(
-  "view-toggle",
+const recompileBtn = document.getElementById("recompile") as HTMLButtonElement;
+const tabMarkdown = document.getElementById(
+  "tab-markdown",
 ) as HTMLButtonElement;
-const templateToggle = document.getElementById(
-  "template-toggle",
+const tabSource = document.getElementById("tab-source") as HTMLButtonElement;
+const editTemplateBtn = document.getElementById(
+  "edit-template",
 ) as HTMLButtonElement;
 const resetTemplateBtn = document.getElementById(
   "reset-template",
@@ -97,12 +99,16 @@ const preview = document.getElementById("preview") as HTMLIFrameElement;
 const hardBreaksToggle = document.getElementById(
   "hard-breaks-toggle",
 ) as HTMLInputElement;
+const hardBreaksAction = document.getElementById(
+  "hardbreaks-action",
+) as HTMLLabelElement;
 const wrapLinesToggle = document.getElementById(
   "wrap-lines-toggle",
 ) as HTMLInputElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
 const darkToggle = document.getElementById("dark-toggle") as HTMLButtonElement;
-const onboardAgentBtn = document.getElementById("onboard-agent") as HTMLButtonElement;
+// Two triggers share one handler: the always-visible toolbar button and the mobile entry inside the ⋯ menu.
+const onboardTriggers = document.querySelectorAll<HTMLElement>(".onboard-trigger");
 const highlightSelect = document.getElementById(
   "highlight-select",
 ) as HTMLSelectElement;
@@ -151,11 +157,19 @@ async function resolveAssets(markdown: string) {
 }
 
 // The "emoji" asset group is unused: its NotoColorEmoji URL 404s at the pinned typst-dev-assets tag.
+// A theme names its faces in the `.typ`; load the CDN URL for each non-embedded one it actually names.
+const FONT_NAME = /(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g;
+
 function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
-  const { assets, urls = [] } = getTheme(themeId).fonts;
+  const theme = getTheme(themeId);
+  const named = new Set([...theme.template.matchAll(FONT_NAME)].map((m) => m[1]));
+  const urls = [...(theme.fonts.urls ?? [])];
+  for (const family of named) {
+    if (FONT_URLS[family]) urls.push(...FONT_URLS[family]);
+  }
   return {
-    assets: [...assets],
-    urls: withEmoji ? [...urls, EMOJI_FONT.url] : [...urls],
+    assets: [...theme.fonts.assets],
+    urls: withEmoji ? [...urls, EMOJI_FONT.url] : urls,
   };
 }
 
@@ -209,32 +223,23 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-// Centralized UI update for template-related buttons.
+// Centralized UI update for the pane tabs and template actions.
+// "source" and "template" share one tab: viewing the generated document and editing its template wrapper.
 function updateTemplateUi() {
-  if (viewMode === "template") {
-    templateToggle.classList.add("active");
-    templateToggle.textContent = "Editor";
-  } else {
-    templateToggle.classList.remove("active");
-    templateToggle.textContent = "Template";
-  }
+  const onSourceTab = viewMode === "source" || viewMode === "template";
+  tabMarkdown.classList.toggle("active", viewMode === "editor");
+  tabSource.classList.toggle("active", onSourceTab);
 
-  if (viewMode === "source") {
-    viewToggle.classList.add("active");
-    viewToggle.textContent = "Editor";
-  } else {
-    viewToggle.classList.remove("active");
-    viewToggle.textContent = "Source";
-  }
+  // Hard breaks is a Markdown-parsing option, so it belongs to the Markdown view only.
+  hardBreaksAction.classList.toggle("visible", viewMode === "editor");
+  editTemplateBtn.classList.toggle("visible", onSourceTab);
+  editTemplateBtn.textContent =
+    viewMode === "template" ? "Done editing" : "Edit template";
 
-  viewToggle.disabled = viewMode === "template";
-  templateToggle.disabled = viewMode === "source";
-
-  if (viewMode === "template" && hasCustomTemplate(activeSelection())) {
-    resetTemplateBtn.classList.add("visible");
-  } else {
-    resetTemplateBtn.classList.remove("visible");
-  }
+  resetTemplateBtn.classList.toggle(
+    "visible",
+    viewMode === "template" && hasCustomTemplate(activeSelection()),
+  );
 }
 
 async function doCompile() {
@@ -245,7 +250,7 @@ async function doCompile() {
     currentMarkdown = getValue(view);
   }
 
-  convertBtn.disabled = true;
+  recompileBtn.disabled = true;
   setStatus("Compiling...", "loading");
 
   try {
@@ -296,7 +301,7 @@ async function doCompile() {
     preview.src = currentPdfUrl;
     downloadLink.href = currentPdfUrl;
     downloadLink.download = `${pdfFilenameStem()}.pdf`;
-    downloadLink.style.display = "inline";
+    downloadLink.setAttribute("aria-disabled", "false");
 
     const warningCount = warnings.length;
     const sizeKb = (pdfBytes.byteLength / 1024).toFixed(1);
@@ -316,7 +321,7 @@ async function doCompile() {
     setStatus(`Compile error: ${msg}`, "error");
   } finally {
     if (jobId === latestJobId) {
-      convertBtn.disabled = false;
+      recompileBtn.disabled = false;
     }
   }
 }
@@ -430,9 +435,7 @@ function adoptTemplateFile(name: string, source: string) {
 }
 
 function setViewMode(mode: ViewMode) {
-  if (mode === viewMode) {
-    mode = "editor";
-  }
+  if (mode === viewMode) return;
 
   const previous = viewMode;
   if (previous === "editor") {
@@ -448,6 +451,7 @@ function setViewMode(mode: ViewMode) {
   if (mode === "source") enterSourceMode();
   if (mode === "template") enterTemplateMode();
 
+  setLanguage(view, mode === "editor" ? "markdown" : "typst");
   updateTemplateUi();
 }
 
@@ -468,9 +472,23 @@ function onDocChange() {
 
 // --- Event listeners ---
 
-convertBtn.addEventListener("click", doCompile);
-viewToggle.addEventListener("click", () => setViewMode("source"));
-templateToggle.addEventListener("click", () => setViewMode("template"));
+recompileBtn.addEventListener("click", doCompile);
+tabMarkdown.addEventListener("click", () => setViewMode("editor"));
+tabSource.addEventListener("click", () => setViewMode("source"));
+editTemplateBtn.addEventListener("click", () =>
+  setViewMode(viewMode === "template" ? "source" : "template"),
+);
+
+// Native <details> popovers stay open on outside clicks; close them by hand.
+const popovers = [
+  ...document.querySelectorAll<HTMLDetailsElement>("details.pop"),
+];
+document.addEventListener("click", (e) => {
+  for (const pop of popovers) {
+    if (pop.open && !pop.contains(e.target as Node)) pop.open = false;
+  }
+});
+const morePop = document.getElementById("more-pop") as HTMLDetailsElement;
 
 resetTemplateBtn.addEventListener("click", () => {
   const value = activeSelection();
@@ -491,7 +509,10 @@ templateSelect.addEventListener("change", () => {
   doCompile();
 });
 
-onboardAgentBtn.addEventListener("click", async () => {
+async function onboardAgent(event: Event): Promise<void> {
+  // Capture before the await: currentTarget is nulled once the handler returns.
+  const trigger = event.currentTarget as HTMLElement;
+  morePop.open = false;
   const copied = await copyText(AGENT_ONBOARDING_PROMPT);
   setStatus(
     copied
@@ -499,7 +520,12 @@ onboardAgentBtn.addEventListener("click", async () => {
       : "Could not access the clipboard. Copy the prompt from src/agent-onboarding.ts.",
     copied ? "info" : "error",
   );
-});
+  if (copied) {
+    trigger.classList.add("copied");
+    setTimeout(() => trigger.classList.remove("copied"), 1400);
+  }
+}
+onboardTriggers.forEach((el) => el.addEventListener("click", onboardAgent));
 
 hardBreaksToggle.addEventListener("change", doCompile);
 
@@ -558,10 +584,11 @@ function currentHighlightThemeId(dark: boolean): string {
   return filtered[0].id;
 }
 
-function applyDarkMode(dark: boolean) {
+// Persisting only on an explicit toggle keeps the app following the OS theme until the user overrides it.
+function applyDarkMode(dark: boolean, persist = false) {
   document.body.classList.toggle("dark", dark);
   darkToggle.textContent = dark ? "☀️" : "🌙";
-  localStorage.setItem(DARK_KEY, dark ? "1" : "0");
+  if (persist) localStorage.setItem(DARK_KEY, dark ? "1" : "0");
   populateHighlightOptions(dark);
   const themeId = currentHighlightThemeId(dark);
   highlightSelect.value = themeId;
@@ -569,7 +596,7 @@ function applyDarkMode(dark: boolean) {
 }
 
 darkToggle.addEventListener("click", () => {
-  applyDarkMode(!isDark());
+  applyDarkMode(!isDark(), true);
 });
 
 highlightSelect.addEventListener("change", () => {
@@ -580,12 +607,12 @@ highlightSelect.addEventListener("change", () => {
 
 // Initialize mode first so highlight options + value reflect the right set before the editor view is created.
 migrateLegacyHighlight();
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 const savedDark = localStorage.getItem(DARK_KEY);
-const initialDark =
-  savedDark !== null
-    ? savedDark === "1"
-    : window.matchMedia("(prefers-color-scheme: dark)").matches;
-applyDarkMode(initialDark);
+applyDarkMode(savedDark !== null ? savedDark === "1" : systemDark.matches);
+systemDark.addEventListener("change", (e) => {
+  if (localStorage.getItem(DARK_KEY) === null) applyDarkMode(e.matches);
+});
 
 // Drag-and-drop .md files
 const dropOverlay = document.getElementById("drop-overlay") as HTMLDivElement;
@@ -644,6 +671,7 @@ document.addEventListener("drop", (e) => {
 });
 
 templateFileInput.addEventListener("change", () => {
+  morePop.open = false;
   const file = templateFileInput.files?.[0];
   if (!file) return;
   void file.text().then((source) => adoptTemplateFile(file.name, source));
@@ -673,7 +701,7 @@ async function init() {
 
   updateTemplateUi();
   try {
-    convertBtn.disabled = false;
+    recompileBtn.disabled = false;
 
     // Pull the ~11 MB compiler into cache with visible progress first, so the worker's fetch is a cache hit and its compile timeout never races a slow download. Non-fatal: on failure the worker fetches it itself.
     setStatus("Downloading compiler (one-time)…", "loading");

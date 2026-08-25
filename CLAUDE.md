@@ -62,7 +62,7 @@ relevant file so the failure mode is documented and re-checkable.
 
 ## Theme spacing rules (vertical rhythm + WCAG)
 
-The `default` theme's spacing is a tuned system, not a bag of independent numbers. Change one value in isolation and you break the hierarchy that took several rounds to get right. Before touching any `leading` / `spacing` / `above` / `below` in `web/src/themes/default.ts`, keep these invariants:
+The `default` theme's spacing is a tuned system, not a bag of independent numbers. Change one value in isolation and you break the hierarchy that took several rounds to get right. Before touching any `leading` / `spacing` / `above` / `below` in `web/src/themes/default.typ`, keep these invariants:
 
 - **Ordering (non-negotiable):** `space above a heading` > `space between paragraphs` > `space below a heading` > `space between lines`. A heading must clearly separate from the previous section (large `above`), bind to the body it introduces (small `below`), and a heading that wraps must read as one title (tight internal `leading`), not as several stacked titles.
 - **Line height** — `par(leading: 0.85em)` measures to a 1.5 line-height ratio, the WCAG 2.2 SC 1.4.12 minimum. It is applied to body, every heading level, and quotes so the whole document shares one rhythm. This value was measured with Typst's `measure()`, not guessed — re-measure if you change the body font (the em-to-line-height ratio is font-metric dependent).
@@ -71,11 +71,11 @@ The `default` theme's spacing is a tuned system, not a bag of independent number
 - **Letter-spacing and word-spacing are deliberately NOT baked in.** WCAG 1.4.12 only requires that content survive a *user* applying `tracking` / word-spacing; hard-coding them (`text(tracking:)` / `text(spacing:)`) alters the typeface's texture and reads as a font change. Leave them to the reader/browser.
 - **Code blocks are exempt** — `raw` keeps its own tight `leading` and normal letter spacing so monospace stays aligned.
 
-`minimal.ts` / `academic.ts` / `aitelier.ts` share the same wrapped-heading leading fix and should follow the same ordering. The `ieee` theme is governed by the IEEE spec instead (verified page geometry from `ieee-pages-and-margins-2016.pdf`, numbered headings, dedicated cover + TOC pages, body page numbers) — do not apply the default theme's values to it.
+`academic.typ` / `aitelier.typ` share the same wrapped-heading leading fix and should follow the same ordering. The `ieee` theme is governed by the IEEE spec instead (verified page geometry from `ieee-pages-and-margins-2016.pdf`, numbered headings, dedicated cover + TOC pages, body page numbers) — do not apply the default theme's values to it.
 
-## The `pentest` theme
+## The `report` theme
 
-Mirrors a generated penetration-test report: cover page with a charcoal title band, a dotted-leader contents page, section titles over a heavy rule, severity pills, a findings table with a dark header, and a metadata card per finding. Set in **Arimo**, which is metric-compatible with Helvetica and OFL, fetched by URL through the theme's font descriptor. Static faces only: Typst warns that variable fonts are unsupported and silently drops bold.
+The `report.typ` theme mirrors a generated penetration-test report: cover page with a charcoal title band, a dotted-leader contents page, section titles over a heavy rule, severity pills, a findings table with a dark header, and a metadata card per finding. Set in **Arimo** (Helvetica-metric, OFL), a non-embedded face `fontsFor` loads by URL from the `FONT_URLS` map (see `themes/index.ts`) because the `.typ` names it.
 
 Three conventions it reads out of ordinary Markdown, all documented in `web/test/visuals/pentest-report.md`:
 
@@ -93,11 +93,11 @@ The pill substitution returns `table.cell(align: horizon, badge(…))`, not a ba
 
 ## Adding a theme
 
-`web/src/themes/<id>.ts` exporting a `Theme`, then register it in `themes/index.ts`. Nothing else: the picker is built from the registry at runtime, and `themes.test.ts` plus `render.test.ts` pick the new theme up automatically.
+A theme is one `.typ` file: `web/src/themes/<id>.typ`, plain Typst that any Typst user could compile. Drop it in, nothing else: `plugins/content-themes.ts` scans `*.typ` and generates the registry, deriving the id and display name from the filename (`report.typ` → id `report`, name "Report") and defaulting fonts to the embedded set. The picker is built from the registry at runtime, and `themes.test.ts` plus `render.test.ts` pick the new theme up automatically. No per-theme TypeScript, no metadata sidecar; logos inline as SVG (`image(bytes("<svg…>"), format: "svg")`).
 
 Two rules the tests enforce, both learned the hard way:
 
-- **Name only fonts the theme declares** in its `fonts` descriptor. Typst warns for every family it cannot resolve, whether or not the document uses it, so a stray family in a fallback list means a warning on every compile.
+- **Name only a font it can load**: either an embedded face (Libertinus Serif, New Computer Modern, DejaVu Sans Mono, from `typst fonts --ignore-system-fonts`) or a non-embedded one listed in `FONT_URLS` in `themes/index.ts` (Arimo, Barlow, Montserrat), which `fontsFor` fetches by URL for exactly the faces a `.typ` names. Anything else renders a fallback and cannot be validated; `themes.test.ts` fails it. `render.test.ts` fetches the URL faces under `TYPSTMD_NETWORK_TESTS=1` (set in CI) to compile those themes on real Typst; add a new URL face by dropping it in `FONT_URLS`.
 - **Size code relative to its context** (`0.78em`, not `9pt`). An absolute size renders inline code inside a heading at body size, and the obvious fix, `show raw: set text(size: 1em)`, is a no-op because `1em` resolves against the size the outer rule already set.
 
 Themes are for documents. The tighter rhythm of a CV belongs in a template, not a theme; `aitelier` carries the palette and the mono section-label motif of `noel.engineer/resume` on the document spacing contract above.
@@ -120,7 +120,7 @@ Persistence is `localStorage`, so it is per-browser. Publishing a dropped templa
 
 `web/src/starters.ts` holds preambles for Typst Universe templates, loaded into the Template view from the toolbar. They are **not** copied theme code: the package is fetched at a pinned version, so the rendering stays upstream's and every parameter it exposes stays reachable.
 
-Derive a new starter from that package's own `template/main.typ`, never by hand. Argument types are not guessable (`basic-resume` wants `author: "string"`, `charged-ieee` wants `department: [content]`, `dashing-dept-news` has no `subtitle` at all), and a wrong one only surfaces on compile. `TYPSTMD_NETWORK_TESTS=1 bun test test/render.test.ts` compiles every starter for exactly this reason; it is opt-in because it downloads packages.
+Derive a new starter from that package's own `template/main.typ`, never by hand. Argument types are not guessable (`basic-resume` wants `author: "string"`, `charged-ieee` wants `department: [content]`), and a wrong one only surfaces on compile. `TYPSTMD_NETWORK_TESTS=1 bun test test/render.test.ts` compiles every starter for exactly this reason; it is opt-in because it downloads packages.
 
 Because unit tests only assert the generated Typst *string*, a spacing regression will pass `bun test`. Verify spacing changes by rendering — `web/test/visuals/headings.md` is the fixture for this.
 

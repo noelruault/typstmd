@@ -1,4 +1,0 @@
-[    1142ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://noelruault.github.io/favicon.ico:0
-[    1276ms] [WARNING] using deprecated parameters for the initialization function; pass a single object instead @ https://noelruault.github.io/typstmd/compile-worker.js:1
-[  284133ms] [ERROR] Access to fetch at 'https://deelay.me/600000/https://picsum.photos/id/1/80/80.jpg' from origin 'https://noelruault.github.io' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://noelruault.github.io/typstmd/:0
-[  284134ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://deelay.me/600000/https://picsum.photos/id/1/80/80.jpg:0
