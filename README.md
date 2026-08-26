@@ -6,6 +6,10 @@
 
 Try it now, nothing to install: **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**. Everything compiles locally in the tab, nothing leaves your disk.
 
+<img src="docs/report-template.gif" alt="Eight pages of a report rendered by the typstmd theme: cover band, contents, severity pills, metadata cards, code evidence and a Mermaid diagram" width="420">
+
+Every page above came from plain Markdown, through the `typstmd` theme. The source is `web/test/visuals/branded-report.md`.
+
 **In the browser locally (run it yourself).** You need [Bun](https://bun.sh).
 
 ```bash
@@ -17,8 +21,8 @@ bun run dev      # dev server on http://localhost:3000
 **From the command line.** You need [Pandoc](https://pandoc.org/installing.html) and [Typst](https://github.com/typst/typst#installation) 0.14 or newer.
 
 ```bash
-./cmd/converter.sh testdata/example.md            # writes to ./output/
-./cmd/converter.sh testdata/example.md --mermaid  # also render Mermaid diagrams
+./cmd/converter.sh web/test/example.md            # writes to ./output/
+./cmd/converter.sh web/test/example.md --mermaid  # also render Mermaid diagrams
 ```
 
 ## Why typstmd
@@ -61,7 +65,7 @@ In the web app, any other key is passed through untouched as a `frontmatter` dic
 ./cmd/converter.sh path/to/document.md
 ```
 
-Same front matter, styled through `templates/md-template.typ`.
+Same front matter, styled through `cmd/templates/md-template.typ`.
 
 ## Architecture
 
@@ -78,10 +82,10 @@ flowchart LR
 ```
 
 - **Web** (`web/`): `remark` parses Markdown to an AST, `mdast-to-typst.ts` serializes it to a Typst string, a theme wraps it, and a Typst WebAssembly compiler runs in a Web Worker with a timeout so a pathological document can never freeze the tab. Editor is CodeMirror 6.
-- **CLI** (`cmd/`): `converter.sh` runs Pandoc with a pinned reader dialect and a set of Lua filters, using Typst as the PDF engine and `templates/md-template.typ` for styling.
+- **CLI** (`cmd/`): `converter.sh` runs Pandoc with a pinned reader dialect and a set of Lua filters, using Typst as the PDF engine and `cmd/templates/md-template.typ` for styling.
 - **Themes are files.** Each theme is a plain `.typ` under `web/src/themes/`; a build step scans the folder and generates the registry, so adding a theme is dropping a file. The `parity.test.ts` suite asserts the CLI and web produce the same output, including Mermaid on and off.
 
-More detail lives in `AGENTS.md` and `CLAUDE.md`.
+More detail lives in `AGENTS.md`.
 
 ## Benchmark
 
@@ -97,10 +101,10 @@ Committed baseline, reproduce with `bun run bench`:
 
 | Document | Transform | Compile |
 | --- | --- | --- |
-| `example` (default theme) | 3.50 ms | 50.84 ms |
-| `visual:headings` (default theme) | 0.44 ms | 14.85 ms |
+| `example` (default theme) | 3.52 ms | 52.99 ms |
+| `visual:headings` (default theme) | 0.51 ms | 15.01 ms |
 
-<!-- Numbers are the committed web/test/perf-baseline.json values. Re-record with `bun run bench:update` after a pipeline change; some baseline keys still reference removed themes and will refresh on the next update. -->
+<!-- Numbers are the committed web/test/perf-baseline.json values. Re-record with `bun run bench:update` after a pipeline change. -->
 
 ## Configuration and self-hosting
 

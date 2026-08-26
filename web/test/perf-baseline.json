@@ -1,102 +1,122 @@
 {
   "example @ default": {
-    "transformMs": 4.2357920000000036,
-    "compileMs": 47.951167000000055
+    "transformMs": 3.777917000000002,
+    "compileMs": 50.091458999999986
   },
   "example @ academic": {
-    "transformMs": 2.7331669999999804,
-    "compileMs": 50.724707999999964
+    "transformMs": 2.707416999999964,
+    "compileMs": 52.929708000000005
   },
   "example @ aitelier": {
-    "transformMs": 2.484666999999945,
-    "compileMs": 47.68225000000007
+    "transformMs": 2.709500000000162,
+    "compileMs": 51.75762500000019
   },
   "example @ ieee": {
-    "transformMs": 2.419499999999971,
-    "compileMs": 51.623374999999896
+    "transformMs": 2.4782500000001164,
+    "compileMs": 56.50329099999999
   },
   "example @ report": {
-    "transformMs": 2.536624999999958,
-    "compileMs": 48.03454200000033
+    "transformMs": 2.682790999999952,
+    "compileMs": 49.56108300000005
+  },
+  "example @ typstmd": {
+    "transformMs": 2.5331670000000486,
+    "compileMs": 51.63783299999977
   },
   "visual:headings @ default": {
-    "transformMs": 0.5656669999998485,
-    "compileMs": 11.838125000000218
+    "transformMs": 0.44370800000024246,
+    "compileMs": 11.66800000000012
   },
   "visual:headings @ academic": {
-    "transformMs": 0.463832999999795,
-    "compileMs": 12.488790999999765
+    "transformMs": 0.4806659999999283,
+    "compileMs": 15.288750000000164
   },
   "visual:headings @ aitelier": {
-    "transformMs": 0.4623750000000655,
-    "compileMs": 11.323499999999967
+    "transformMs": 0.4698750000002292,
+    "compileMs": 12.24304200000006
   },
   "visual:headings @ ieee": {
-    "transformMs": 0.48158299999977316,
-    "compileMs": 12.037291000000096
+    "transformMs": 0.4867500000000291,
+    "compileMs": 15.878999999999905
   },
   "visual:headings @ report": {
-    "transformMs": 0.4798749999999927,
-    "compileMs": 13.267084000000068
+    "transformMs": 0.44812499999989086,
+    "compileMs": 10.997624999999971
+  },
+  "visual:headings @ typstmd": {
+    "transformMs": 0.45179200000029596,
+    "compileMs": 11.466542000000118
   },
   "visual:tables @ default": {
-    "transformMs": 2.152708000000075,
-    "compileMs": 16.359915999999885
+    "transformMs": 1.921291999999994,
+    "compileMs": 19.468166999999994
   },
   "visual:tables @ academic": {
-    "transformMs": 1.9583330000000387,
-    "compileMs": 19.567667000000256
+    "transformMs": 2.0288339999997334,
+    "compileMs": 21.43120799999997
   },
   "visual:tables @ aitelier": {
-    "transformMs": 2.016667000000325,
-    "compileMs": 17.08583299999964
+    "transformMs": 1.9522080000001552,
+    "compileMs": 19.60658400000011
   },
   "visual:tables @ ieee": {
-    "transformMs": 2.066874999999982,
-    "compileMs": 18.376541999999972
+    "transformMs": 2.0125419999999394,
+    "compileMs": 21.18566699999974
   },
   "visual:tables @ report": {
-    "transformMs": 1.945542000000387,
-    "compileMs": 19.452624999999898
+    "transformMs": 1.9413340000000971,
+    "compileMs": 22.525958000000173
+  },
+  "visual:tables @ typstmd": {
+    "transformMs": 1.8691250000001673,
+    "compileMs": 18.953958000000057
   },
   "visual:code-blocks @ default": {
-    "transformMs": 0.34083400000008623,
-    "compileMs": 23.704625000000306
+    "transformMs": 0.4105829999998605,
+    "compileMs": 27.26258400000006
   },
   "visual:code-blocks @ academic": {
-    "transformMs": 0.3524170000000595,
-    "compileMs": 24.70283399999971
+    "transformMs": 0.42241699999976845,
+    "compileMs": 25.134415999999874
   },
   "visual:code-blocks @ aitelier": {
-    "transformMs": 0.3833749999994325,
-    "compileMs": 24.587125000000015
+    "transformMs": 0.36362500000086584,
+    "compileMs": 25.235916999999972
   },
   "visual:code-blocks @ ieee": {
-    "transformMs": 0.39020800000071176,
-    "compileMs": 24.223834000000352
+    "transformMs": 0.37370800000007875,
+    "compileMs": 24.789832999999817
   },
   "visual:code-blocks @ report": {
-    "transformMs": 0.4887909999997646,
-    "compileMs": 24.93512499999997
+    "transformMs": 0.3607499999998254,
+    "compileMs": 24.33441700000003
+  },
+  "visual:code-blocks @ typstmd": {
+    "transformMs": 0.4413750000003347,
+    "compileMs": 25.096832999999606
   },
   "synthetic:150-entries @ default": {
-    "transformMs": 21.520040999999765,
-    "compileMs": 49.715165999999954
+    "transformMs": 20.728250000000116,
+    "compileMs": 50.79279200000019
   },
   "synthetic:150-entries @ academic": {
-    "transformMs": 18.636833999999908,
-    "compileMs": 76.16941700000007
+    "transformMs": 18.315083000000413,
+    "compileMs": 80.4237920000005
   },
   "synthetic:150-entries @ aitelier": {
-    "transformMs": 17.6029580000004,
-    "compileMs": 48.14274999999998
+    "transformMs": 18.44154200000048,
+    "compileMs": 55.264125000000604
   },
   "synthetic:150-entries @ ieee": {
-    "transformMs": 17.99237499999981,
-    "compileMs": 72.41304200000013
+    "transformMs": 18.17029099999945,
+    "compileMs": 76.39724999999999
   },
   "synthetic:150-entries @ report": {
-    "transformMs": 18.546166999999514,
-    "compileMs": 63.09345899999971
+    "transformMs": 18.485333999999057,
+    "compileMs": 67.45750000000044
+  },
+  "synthetic:150-entries @ typstmd": {
+    "transformMs": 18.915541000000303,
+    "compileMs": 51.55912499999977
   }
 }
