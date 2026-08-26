@@ -2,13 +2,11 @@
 
 **Turn Markdown into a polished, typeset PDF, right in your browser.** The Typst compiler runs as WebAssembly on your own machine, so your documents are never uploaded and you never sign in. Prefer the terminal? The same conversion runs from a shell CLI. And when a plain theme is not enough, drag in your own Typst template, or have your coding agent build one for you, to match any layout you can imagine.
 
-Try it now, nothing to install: **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**
+Try it now, nothing to install: **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**. Everything compiles locally in the tab, nothing leaves your disk.
 
 ## Try it
 
-**In the browser (hosted).** Open **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**, paste your Markdown, pick a look, and download the PDF. Everything compiles locally in the tab.
-
-**In the browser (run it yourself).** You need [Bun](https://bun.sh).
+**In the browser locally (run it yourself).** You need [Bun](https://bun.sh).
 
 ```bash
 cd web
@@ -19,8 +17,8 @@ bun run dev      # dev server on http://localhost:3000
 **From the command line.** You need [Pandoc](https://pandoc.org/installing.html) and [Typst](https://github.com/typst/typst#installation) 0.14 or newer.
 
 ```bash
-./cmd/converter.sh web/test/example.md            # writes to ./output/
-./cmd/converter.sh web/test/example.md --mermaid  # also render Mermaid diagrams
+./cmd/converter.sh testdata/example.md            # writes to ./output/
+./cmd/converter.sh testdata/example.md --mermaid  # also render Mermaid diagrams
 ```
 
 ## Why typstmd
@@ -63,7 +61,7 @@ In the web app, any other key is passed through untouched as a `frontmatter` dic
 ./cmd/converter.sh path/to/document.md
 ```
 
-Same front matter, styled through `cmd/templates/md-template.typ`.
+Same front matter, styled through `templates/md-template.typ`.
 
 ## Architecture
 
@@ -80,10 +78,10 @@ flowchart LR
 ```
 
 - **Web** (`web/`): `remark` parses Markdown to an AST, `mdast-to-typst.ts` serializes it to a Typst string, a theme wraps it, and a Typst WebAssembly compiler runs in a Web Worker with a timeout so a pathological document can never freeze the tab. Editor is CodeMirror 6.
-- **CLI** (`cmd/`): `converter.sh` runs Pandoc with a pinned reader dialect and a set of Lua filters, using Typst as the PDF engine and `cmd/templates/md-template.typ` for styling.
+- **CLI** (`cmd/`): `converter.sh` runs Pandoc with a pinned reader dialect and a set of Lua filters, using Typst as the PDF engine and `templates/md-template.typ` for styling.
 - **Themes are files.** Each theme is a plain `.typ` under `web/src/themes/`; a build step scans the folder and generates the registry, so adding a theme is dropping a file. The `parity.test.ts` suite asserts the CLI and web produce the same output, including Mermaid on and off.
 
-More detail lives in `AGENTS.md`.
+More detail lives in `AGENTS.md` and `CLAUDE.md`.
 
 ## Benchmark
 
@@ -99,10 +97,10 @@ Committed baseline, reproduce with `bun run bench`:
 
 | Document | Transform | Compile |
 | --- | --- | --- |
-| `example` (default theme) | 3.52 ms | 52.99 ms |
-| `visual:headings` (default theme) | 0.51 ms | 15.01 ms |
+| `example` (default theme) | 3.50 ms | 50.84 ms |
+| `visual:headings` (default theme) | 0.44 ms | 14.85 ms |
 
-<!-- Numbers are the committed web/test/perf-baseline.json values. Re-record with `bun run bench:update` after a pipeline change. -->
+<!-- Numbers are the committed web/test/perf-baseline.json values. Re-record with `bun run bench:update` after a pipeline change; some baseline keys still reference removed themes and will refresh on the next update. -->
 
 ## Configuration and self-hosting
 
@@ -126,10 +124,10 @@ bunx tsc --noEmit
 bun test
 ```
 
-`AGENTS.md` documents the design contract, the pipeline shapes, and the theme rules. `CLAUDE.md` is a symlink to it, so every coding agent reads the same file.
+`AGENTS.md` documents the design contract, the pipeline shapes, and the theme rules. `CLAUDE.md` is a symlink to it, Claude Code is the one I use but it's done this way so eventually every coding agent reads the same file.
 
 ## License
 
 MIT, see [LICENSE](LICENSE).
 
-Fonts keep their own terms, and all of them are SIL Open Font License 1.1: the vendored `assets/Roboto.ttf` (Roboto 3.009), and the faces the web app fetches at runtime (Arimo, Barlow Semi Condensed, Montserrat, Noto Color Emoji). The MIT grant above covers the code, not those files.
+Fonts keep their own terms, and all of them are SIL Open Font License 1.1: the faces the web app fetches at runtime (Arimo, Barlow Semi Condensed, Montserrat, Noto Color Emoji). The MIT grant above covers the code, not those files.
