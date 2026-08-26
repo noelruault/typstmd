@@ -22,7 +22,7 @@ import { markdownToTypst } from "../src/pipeline";
 
 const ITERATIONS = 200;
 
-const examplePath = join(import.meta.dir, "../../example.md");
+const examplePath = join(import.meta.dir, "./example.md");
 const exampleMd = readFileSync(examplePath, "utf-8");
 
 // Documents of increasing size

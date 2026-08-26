@@ -1,7 +1,7 @@
 // bench.ts times only the JS transform, so a change can double compile time while it stays flat.
 // `bun run test/bench-compile.ts` compares against perf-baseline.json; `--update` rewrites it.
 
-import { execFileSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -12,12 +12,10 @@ const BASELINE_PATH = join(import.meta.dir, "perf-baseline.json");
 const REPO_ROOT = join(import.meta.dir, "../..");
 const RUNS = 7;
 
-// 1.25x, not something tighter: best-of-N on a machine doing other work still swings ~10%,
-// and a gate that cries wolf gets muted. The regressions worth catching were 2x.
+// 1.25x, not something tighter: best-of-N on a machine doing other work still swings ~10%, and a gate that cries wolf gets muted. The regressions worth catching were 2x.
 const BUDGET = { compile: 1.20, transform: 1.20 };
 
-// Only judge cases with real work in them. Below these, the number is mostly typst's process
-// startup and font loading, which swings 30% run to run and says nothing about our code.
+// Only judge cases with real work in them. Below these, the number is mostly typst's process startup and font loading, which swings 30% run to run and says nothing about our code.
 const FLOOR_MS = { compile: 40, transform: 5 };
 
 interface Sample {
@@ -35,8 +33,18 @@ function typstAvailable(): boolean {
   }
 }
 
-// Best of N, not the median: both are CPU-bound, so anything above the fastest run is
-// interference from elsewhere on the machine. The median flagged a phantom 1.32x once.
+// A theme whose .typ is gitignored exists on one machine only, and perf-baseline.json is committed:
+// benching it would write its name and timings into the public repo. check-ignore exits 0 when ignored.
+function isPrivateTheme(themeId: string): boolean {
+  return (
+    spawnSync("git", ["check-ignore", "-q", `src/themes/${themeId}.typ`], {
+      cwd: join(REPO_ROOT, "web"),
+      stdio: "pipe",
+    }).status === 0
+  );
+}
+
+// Best of N, not the median: both are CPU-bound, so anything above the fastest run is interference from elsewhere on the machine. The median flagged a phantom 1.32x once.
 function best(values: number[]): number {
   return Math.min(...values);
 }
@@ -58,7 +66,7 @@ function syntheticDoc(entries: number): string {
 function corpus(): Record<string, string> {
   const read = (p: string) => readFileSync(join(REPO_ROOT, p), "utf-8");
   return {
-    example: read("example.md"),
+    example: read("web/test/example.md"),
     "visual:headings": read("web/test/visuals/headings.md"),
     "visual:tables": read("web/test/visuals/tables.md"),
     "visual:code-blocks": read("web/test/visuals/code-blocks.md"),
@@ -98,15 +106,18 @@ function run(): number {
   }
 
   const update = process.argv.includes("--update");
-  // Report mode never fails: absolute timings are machine-specific, so a committed baseline
-  // from one machine cannot gate another.
+  // Report mode never fails: absolute timings are machine-specific, so a committed baseline from one machine cannot gate another.
   const reportOnly = process.argv.includes("--report");
   const tmpDir = mkdtempSync(join(tmpdir(), "typstmd-bench-"));
   const results: Results = {};
 
+  const benched = themes.filter((t) => !isPrivateTheme(t.id));
+  const skipped = themes.length - benched.length;
+  if (skipped > 0) console.log(`skipping ${skipped} private theme(s): not committed, so not in the baseline`);
+
   try {
     for (const [docName, md] of Object.entries(corpus())) {
-      for (const theme of themes) {
+      for (const theme of benched) {
         const key = `${docName} @ ${theme.id}`;
         results[key] = measure(md, theme.id, tmpDir);
       }

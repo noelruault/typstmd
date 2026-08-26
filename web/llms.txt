@@ -7,8 +7,8 @@ The web app lives at https://noelruault.github.io/typstmd/. Every document it em
 ## Documentation
 
 - [README](https://raw.githubusercontent.com/noelruault/typstmd/main/README.md): CLI prerequisites and usage
-- [Agent guide](https://raw.githubusercontent.com/noelruault/typstmd/main/AGENTS.md): project context for AI agents
-- [Architecture notes](https://raw.githubusercontent.com/noelruault/typstmd/main/CLAUDE.md): pipelines, themes, test layers, design rules
+- [Agent guide](https://raw.githubusercontent.com/noelruault/typstmd/main/AGENTS.md): project context for AI agents, pipelines, themes, test layers, design rules (`CLAUDE.md` is a symlink to it)
+- [License](https://raw.githubusercontent.com/noelruault/typstmd/main/LICENSE): MIT
 
 ## Source
 

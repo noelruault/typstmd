@@ -199,7 +199,7 @@ describe("compile smoke tests", () => {
   });
 
   it("example.md compiles end-to-end", () => {
-    const examplePath = join(import.meta.dir, "../../example.md");
+    const examplePath = join(import.meta.dir, "./example.md");
     const md = readFileSync(examplePath, "utf-8");
     const { typstSource } = markdownToTypst(md);
     const result = compileTypst(typstSource);
@@ -209,7 +209,7 @@ describe("compile smoke tests", () => {
   it("example.md produces a valid PDF with reasonable size", () => {
     if (!typstAvailable) return;
 
-    const examplePath = join(import.meta.dir, "../../example.md");
+    const examplePath = join(import.meta.dir, "./example.md");
     const md = readFileSync(examplePath, "utf-8");
     const { typstSource } = markdownToTypst(md);
 

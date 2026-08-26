@@ -226,9 +226,13 @@
     show outline.entry.where(level: 1): set text(size: 11pt)
     show outline.entry.where(level: 2): set text(size: 9pt, fill: rgb("#3a3a3a"))
     set outline.entry(fill: repeat(justify: false)[#text(fill: rule)[.]])
-    align(center)[#text(size: 22pt)[Table of Contents]]
-    v(1.2em)
-    outline(title: none, depth: 3, indent: 1.2em)
+    // `title: auto` so the heading follows the document language; drawing the words here would pin it to English.
+    // The outline emits its title as a level-1 heading, so this scoped rule restyles it in place.
+    show heading.where(level: 1): it => block(above: 0pt, below: 1.2em, width: 100%)[
+      #set text(size: 22pt, weight: "regular")
+      #align(center)[#it.body]
+    ]
+    outline(title: auto, depth: 3, indent: 1.2em)
     pagebreak()
   }
 

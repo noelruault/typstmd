@@ -121,7 +121,7 @@
   // Table of contents (toc frontmatter flag) on its own page, single column, unnumbered.
   if toc {
     page(paper: paper, margin: margins, footer: none)[
-      #outline(title: [Contents], depth: 3, indent: auto)
+      #outline(title: auto, depth: 3, indent: auto)
     ]
   }
 

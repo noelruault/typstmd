@@ -17,6 +17,7 @@ import {
   extractFrontmatter,
   encodeConfInvocation,
   encodeDocumentSet,
+  encodeLangSet,
   encodeFrontmatterDict,
   type Metadata,
 } from "./frontmatter";
@@ -61,7 +62,7 @@ function assemble(
 
   if (template.includes(BODY_MARKER)) {
     return {
-      preamble: "",
+      preamble: encodeLangSet(metadata),
       bodyWrapper: (body) => template.split(BODY_MARKER).join(body),
     };
   }
@@ -69,7 +70,9 @@ function assemble(
   // No conf to receive metadata, so document properties go through Typst's own mechanism.
   // The set must precede the template: a starter ending in `#show: tmpl.with(...)` turns everything after into a container, and `set document` inside a container is a hard error.
   return {
-    preamble: [encodeDocumentSet(metadata), template].filter((p) => p !== "").join("\n\n"),
+    preamble: [encodeDocumentSet(metadata), encodeLangSet(metadata), template]
+      .filter((p) => p !== "")
+      .join("\n\n"),
     bodyWrapper: (body) => body,
   };
 }

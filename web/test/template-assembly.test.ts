@@ -33,6 +33,26 @@ describe("template assembly", () => {
     expect(typstSource.indexOf("#set document(")).toBeLessThan(typstSource.indexOf("#show: tmpl.with"));
   });
 
+  it("gives a raw template its lang through set text, before the template can be a container", () => {
+    const md = "---\nlang: fr\n---\n\nBody.";
+    const { typstSource } = markdownToTypst(md, { templateOverride: RAW_TEMPLATE });
+    expect(typstSource).toContain('#set text(lang: "fr")');
+    expect(typstSource.indexOf('#set text(lang: "fr")')).toBeLessThan(typstSource.indexOf(RAW_TEMPLATE));
+  });
+
+  it("gives a body-marker template its lang too", () => {
+    const template = `#set page(paper: "a4")\n#block[#typstmd-body]`;
+    const { typstSource } = markdownToTypst("---\nlang: de\n---\n\nBody.", { templateOverride: template });
+    expect(typstSource).toContain('#set text(lang: "de")');
+    expect(typstSource).toContain("#block[Body.]");
+  });
+
+  it("leaves lang to conf when the template defines one", () => {
+    const { typstSource } = markdownToTypst("---\nlang: fr\n---\n\nBody.", { templateOverride: CONF_TEMPLATE });
+    expect(typstSource).toContain('lang: "fr"');
+    expect(typstSource).not.toContain("#set text(lang:");
+  });
+
   it("substitutes the body marker when a template places content itself", () => {
     const template = `#set page(paper: "a4")\n#block[#typstmd-body]`;
     const { typstSource } = markdownToTypst("Body.", { templateOverride: template });

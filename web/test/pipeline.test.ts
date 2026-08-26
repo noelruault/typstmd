@@ -67,7 +67,7 @@ describe("pipeline integration", () => {
   });
 
   it("handles example.md end-to-end without crashing", () => {
-    const examplePath = join(import.meta.dir, "../../example.md");
+    const examplePath = join(import.meta.dir, "./example.md");
     const md = readFileSync(examplePath, "utf-8");
     const result = markdownToTypst(md);
 

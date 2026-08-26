@@ -139,7 +139,7 @@
 
   // Auto-generated table of contents (enabled by the toc frontmatter flag)
   if toc {
-    outline(title: [Contents], depth: 3, indent: auto)
+    outline(title: auto, depth: 3, indent: auto)
     pagebreak()
   }
 

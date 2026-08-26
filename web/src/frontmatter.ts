@@ -67,8 +67,9 @@ function normalizeMetadata(raw: Record<string, unknown>): Metadata {
     meta.date = raw.date.trim();
   }
 
-  if (typeof raw.lang === "string" && raw.lang.trim()) {
-    meta.lang = raw.lang.trim();
+  // Typst's text.lang is an ISO 639 code (region goes in text.region), and the value is interpolated into a string literal in the generated source, so anything else is dropped rather than escaped.
+  if (typeof raw.lang === "string" && /^[A-Za-z]{2,3}$/.test(raw.lang.trim())) {
+    meta.lang = raw.lang.trim().toLowerCase();
   }
 
   if (typeof raw.toc === "boolean") {
@@ -94,6 +95,11 @@ export function encodeDocumentSet(meta: Metadata): string {
     args.push(`author: (${authors},)`);
   }
   return args.length > 0 ? `#set document(${args.join(", ")})` : "";
+}
+
+// encodeLangSet gives `lang` to a template with no `conf` to receive it. It precedes the template, so one that sets its own lang still wins: an upstream package's rendering stays upstream's.
+export function encodeLangSet(meta: Metadata): string {
+  return meta.lang ? `#set text(lang: "${meta.lang}")` : "";
 }
 
 // Values are passed through, never acted on; interpreting styling keys here would make typstmd a style engine instead of a converter.

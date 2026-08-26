@@ -14,6 +14,8 @@ A template is a single Typst (.typ) file that styles the document. typstmd gener
 2. Body marker -- put \`#typstmd-body\` wherever the body should land; typstmd substitutes it with the serialized body.
 3. Raw preamble -- anything else: typstmd appends the body after your file and passes title/author/date via \`#set document(...)\`.
 
+Modes 2 and 3 have no conf() to receive \`lang\`, so typstmd emits \`#set text(lang: "...")\` ahead of your template; setting lang yourself overrides it.
+
 Hard rules:
 - Emit standard, idiomatic, self-contained Typst that compiles in the upstream \`typst\` compiler (0.14+). No custom macros, no hidden context, no Markdown syntax in the Typst.
 - Name only fonts you can rely on. The browser build ships Libertinus Serif plus a small set; naming a font the build cannot resolve makes every compile warn. When unsure, do not set a font family.

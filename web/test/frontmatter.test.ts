@@ -40,6 +40,12 @@ describe("extractFrontmatter", () => {
     expect(extractFrontmatter(tree).date).toBe("2025-01-15");
   });
 
+  it("keeps an ISO 639 lang and drops anything that would escape the string literal", () => {
+    expect(extractFrontmatter(parse("---\nlang: FR\n---\n")).lang).toBe("fr");
+    expect(extractFrontmatter(parse("---\nlang: en-GB\n---\n")).lang).toBeUndefined();
+    expect(extractFrontmatter(parse('---\nlang: \'en") #panic("x\'\n---\n')).lang).toBeUndefined();
+  });
+
   it("handles missing fields gracefully", () => {
     const tree = parse("---\ntitle: Only Title\n---\n");
     const meta = extractFrontmatter(tree);

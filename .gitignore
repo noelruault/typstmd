@@ -15,6 +15,10 @@ web/dist/
 !.claude/agents/custom-*.md
 .playwright-mcp
 
+# Working notes for a change in flight, not a record of the repo.
+.plans/
+TODO.md
+
 # =============================================================================
 # Thumbnails and temporary files
 # =============================================================================
@@ -88,3 +92,4 @@ vendor/
 # Private theme (local only, not published)
 web/src/themes/webbeds.typ
 web/src/themes/registry.gen.ts
+web/test/visuals/webbeds-showcase.md
