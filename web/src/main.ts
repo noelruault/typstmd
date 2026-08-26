@@ -185,7 +185,8 @@ function scheduleSave() {
   setDirty();
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    localStorage.setItem(AUTOSAVE_KEY, getValue(view));
+    // Save the markdown, never the source/template the editor may be showing if a view switch landed inside this 1s window.
+    localStorage.setItem(AUTOSAVE_KEY, viewMode === "editor" ? getValue(view) : currentMarkdown);
     clearDirty();
   }, 1000);
 }
