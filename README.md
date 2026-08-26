@@ -2,9 +2,9 @@
 
 **Turn Markdown into a polished, typeset PDF, right in your browser.** The Typst compiler runs as WebAssembly on your own machine, so your documents are never uploaded and you never sign in. Prefer the terminal? The same conversion runs from a shell CLI. And when a plain theme is not enough, drag in your own Typst template, or have your coding agent build one for you, to match any layout you can imagine.
 
-Try it now, nothing to install: **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**. Everything compiles locally in the tab, nothing leaves your disk.
-
 ## Try it
+
+Try it now, nothing to install: **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**. Everything compiles locally in the tab, nothing leaves your disk.
 
 **In the browser locally (run it yourself).** You need [Bun](https://bun.sh).
 
