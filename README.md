@@ -6,9 +6,9 @@
 
 Try it now, nothing to install: **[noelruault.github.io/typstmd](https://noelruault.github.io/typstmd/)**. Everything compiles locally in the tab, nothing leaves your disk.
 
-<img src="docs/report-template.gif" alt="Eight pages of a report rendered by the typstmd theme: cover band, contents, severity pills, metadata cards, code evidence and a Mermaid diagram" width="420">
+<img src="docs/report-template.gif" alt="Markdown source on the left beside the page it produces on the right, stepping through eight pages: cover band, contents, severity pills, metadata cards, code evidence and a Mermaid diagram" width="760">
 
-Every page above came from plain Markdown, through the `typstmd` theme. The source is `web/test/visuals/branded-report.md`.
+Plain Markdown on the left, the page it produces on the right. The source is `web/test/visuals/branded-report.md` and the look is the `typstmd` theme; `cd web && bun run gif` regenerates the animation from both.
 
 **In the browser locally (run it yourself).** You need [Bun](https://bun.sh).
 

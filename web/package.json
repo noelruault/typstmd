@@ -11,7 +11,8 @@
     "test": "bun test",
     "bench": "bun run test/bench-compile.ts",
     "bench:update": "bun run test/bench-compile.ts --update",
-    "bench:report": "bun run test/bench-compile.ts --report"
+    "bench:report": "bun run test/bench-compile.ts --report",
+    "gif": "bun run scripts/showcase-gif.ts"
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.5.0",
