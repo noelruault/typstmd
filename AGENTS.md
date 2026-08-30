@@ -24,7 +24,7 @@ Web (`cd web/`):
 
 ```bash
 bun install          # first time
-bun run dev          # dev server on :3000, bundles src/main.ts
+bun run dev          # dev server on :3000; rebundles when src/ or plugins/ changed
 bun run build        # production bundle → dist/
 bun test             # 250+ tests, pipeline + remark plugins
 bunx tsc --noEmit    # typecheck
@@ -44,7 +44,7 @@ Modes 2 and 3 have no `conf` to receive `lang`, so typstmd emits `#set text(lang
 
 Rules templates must follow:
 
-- Name only fonts the build can resolve. The browser build ships Libertinus Serif plus a small set; naming an unavailable family makes every compile warn. When unsure, do not set a font family.
+- Name only fonts the app can resolve: the self-hosted baseline (Libertinus Serif, DejaVu Sans Mono, committed in `web/fonts/`) or a family in `FONT_URLS`; naming anything else makes every compile warn. When unsure, do not set a font family.
 - Size inline code relative to context (`0.78em`), never an absolute `pt`, or code inside a heading renders at body size.
 - Keep it to one `.typ` file.
 
@@ -70,6 +70,7 @@ Four layers, and the last two exist because the first two cannot see a rendered 
 | Emitted string | `mdast-to-typst.test.ts`, `fixtures/`, `template-assembly.test.ts` | wrong Typst |
 | CLI/web parity | `parity.test.ts` | the two front-ends drifting apart. Sanctioned divergences are asserted in that file, not waved away. Needs `pandoc` |
 | Rendered PDF | `render.test.ts` | deleted text, a title at body size, a missing font, a table losing its header. Uses `typst` + `pdftotext`/`pdffonts` and `--ignore-system-fonts` so the font set matches the browser |
+| Mobile layout (manual) | `e2e/mobile-check.mjs` | the pane split, fit-width default, maximize and double-tap invariants, in a real browser at phone size. Needs playwright + Chromium and the dev server; not run in CI |
 | Compile time | `bench-compile.ts` | a change doubling what users wait for. `bun run bench` gates locally against `perf-baseline.json`; `bun run bench:update` re-records it. A theme whose `.typ` is gitignored is skipped, because the baseline is committed |
 
 A green `bun test` was never enough on its own: every defect the parity work fixed passed the string layer. CI installs pinned `typst`, `pandoc` and poppler so no layer can silently skip.
@@ -205,7 +206,7 @@ Applies to **both** pipelines. Two clean boundaries:
 
 **Client-only, deliberately.** The web app is a static site and the CLI runs on the user's own machine; there is no hosted md→pdf endpoint and adding one has been rejected. GitHub Pages is static-only, GHCR stores images but does not execute them, and GitHub has no free container-serving product. A Cloudflare Worker cannot run pandoc or native typst (V8 isolates, no subprocess) and the free tier is static-only either way. A real endpoint means external scale-to-zero compute plus sandboxing of untrusted input. If a single binary is ever genuinely wanted, the path that also raises parity is to drop pandoc and reuse `markdownToTypst` in a Bun or Go wrapper, embedding only typst and the fonts — pandoc is GPLv2+ and ~170MB, so bundling it infects the distribution.
 
-**Theme fonts are fetched at runtime.** The build embeds Libertinus Serif, New Computer Modern and DejaVu Sans Mono; every other face a theme names is fetched from the URLs in `FONT_URLS` when the document compiles. Offline use therefore does not fail loudly — Typst falls back and the layout, line breaks and page count change with it. Do not claim offline support without bundling those faces locally. The emoji font cannot be bundled at any sensible size (Noto Color Emoji is ~10MB).
+**The WASM compiler embeds no fonts; the app self-hosts its baseline.** Verified: with no fonts supplied the compiler emits blank pages with zero `/Font` objects, silently, status green. The baseline set (Libertinus Serif and DejaVu Sans Mono, 10 faces, 3 MB, Semibold included because the themes set `weight: "semibold"`) is committed in `web/fonts/` with its licenses and loaded from our own origin on every compiler init, so no CDN sits in the compile path. Everything else stays CDN-fetched and lazy via `FONT_URLS`: New Computer Modern (only `academic` names it; its GUST license text was not obtainable to commit beside the files), Arimo, Barlow, Montserrat, and the emoji face (~10MB, cannot sensibly be bundled). Do not trim the baseline below its 10 faces: every one is reachable from plain Markdown and degrades silently when missing (measured via the PDF's embedded subsets: headings pull Semibold, `# heading with *emphasis*` pulls SemiboldItalic, ``**`code`**`` pulls DejaVu Bold, ``*`code`*`` pulls the Oblique). Consequences: the default themes compile on a network that blocks CDNs, but `academic`, the URL faces and emoji do not, and offline use still does not fail loudly for those — Typst falls back and the layout shifts. (The `typst` CLI, by contrast, embeds its defaults — that is why `render.test.ts` can compile with `--ignore-system-fonts`.)
 
 ## llms.txt
 

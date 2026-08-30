@@ -20,8 +20,11 @@ self.onmessage = async (event: MessageEvent<CompileMessage>) => {
   try {
     compiler = await getCompiler(fonts, packageStrategy);
     compiler.mapAssets(assets);
+    // Vector first: it is the cheap one and the preview's input; the PDF only feeds the
+    // download link. Both come from the same warm compiler, so the second compile is fast.
+    const vectorBytes = await compiler.compileVector(source);
     const pdfBytes = await compiler.compile(source);
-    post({ id, pdfBytes }, [pdfBytes.buffer]);
+    post({ id, pdfBytes, vectorBytes }, [pdfBytes.buffer, vectorBytes.buffer]);
   } catch (err) {
     const errors = compiler?.getErrors() ?? [];
     const error = errors.length

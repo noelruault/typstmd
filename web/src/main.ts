@@ -1,8 +1,10 @@
 import type { FontSpec } from "./typst-compiler";
 import { compileInWorker } from "./compile-client";
+import { renderPreviewSvg } from "./svg-preview";
+import { fitPage, clampZoomWidth, anchoredScroll } from "./preview-fit";
 import { AGENT_ONBOARDING_PROMPT } from "./agent-onboarding";
 import { markdownToTypst } from "./pipeline";
-import { getTheme, themes, EMOJI_FONT, FONT_URLS } from "./themes/index";
+import { getTheme, themes, EMOJI_FONT, FONT_URLS, LOCAL_FONT_FILES } from "./themes/index";
 import { starters, getStarter } from "./starters";
 import {
   formatSelection,
@@ -37,6 +39,7 @@ import {
   highlightThemes,
 } from "./highlight";
 import type { EditorView } from "@codemirror/view";
+import { SHOWCASE } from "./showcase";
 
 const DEFAULT_MARKDOWN = `# Hello from typstmd
 
@@ -92,10 +95,14 @@ const templateSelect = document.getElementById(
 const templateFileInput = document.getElementById(
   "template-file",
 ) as HTMLInputElement;
+const showcaseBtn = document.getElementById(
+  "load-showcase",
+) as HTMLButtonElement;
 const downloadLink = document.getElementById(
   "download-link",
 ) as HTMLAnchorElement;
-const preview = document.getElementById("preview") as HTMLIFrameElement;
+const preview = document.getElementById("preview") as HTMLDivElement;
+const previewMaxBtn = document.getElementById("preview-max") as HTMLButtonElement;
 const hardBreaksToggle = document.getElementById(
   "hard-breaks-toggle",
 ) as HTMLInputElement;
@@ -163,15 +170,160 @@ const FONT_NAME = /(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g;
 function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
   const theme = getTheme(themeId);
   const named = new Set([...theme.template.matchAll(FONT_NAME)].map((m) => m[1]));
-  const urls = [...(theme.fonts.urls ?? [])];
+  // The baseline set is self-hosted (web/fonts/, see LOCAL_FONT_FILES): the compiler embeds no
+  // fonts, and loading these from our own origin means a network that blocks CDNs cannot kill
+  // the compile. assets stays empty so typst.ts fetches nothing from jsdelivr on its own.
+  const urls = LOCAL_FONT_FILES.map((f) => new URL(`./fonts/${f}`, document.baseURI).href);
+  urls.push(...(theme.fonts.urls ?? []));
   for (const family of named) {
     if (FONT_URLS[family]) urls.push(...FONT_URLS[family]);
   }
   return {
-    assets: [...theme.fonts.assets],
+    assets: [],
     urls: withEmoji ? [...urls, EMOJI_FONT.url] : urls,
   };
 }
+
+// Mobile defaults to fit-width: the page fills the pane and the text is readable, which is
+// what a phone reader wants first. Page-fit (the whole page letterboxed in the pane) is one
+// double-tap away, and pinch covers everything in between; both are in the touch handlers
+// below. Desktop keeps the stylesheet's fit-width and is untouched.
+const mobileLayout = window.matchMedia("(max-width: 768px)");
+
+// A pinch or double-tap sets this; page-fit applies only while it is null, so a recompile as
+// the user types does not snap their reading zoom back out. Rotation, resize and the maximize
+// toggle reset it: the pane they zoomed against no longer exists.
+let userZoomWidth: number | null = null;
+
+function pageFitWidth(): number | null {
+  const svg = preview.querySelector("svg");
+  if (!svg) return null;
+  const page = svg.querySelector(".typst-page");
+  const pageW = Number(page?.getAttribute("data-page-width"));
+  const pageH = Number(page?.getAttribute("data-page-height"));
+  // clientWidth/Height exclude the scrollbar but include the 14px padding on each side.
+  const fit = fitPage(pageW, pageH, svg.viewBox.baseVal.width, preview.clientWidth - 28, preview.clientHeight - 28);
+  return fit ? fit.cssWidth : null;
+}
+
+function fitPreviewToPane() {
+  const svg = preview.querySelector("svg");
+  if (!svg) return;
+  if (!mobileLayout.matches) {
+    svg.style.width = "";
+    svg.style.maxWidth = "";
+    return;
+  }
+  // clientWidth includes the 14px padding on each side.
+  const width = userZoomWidth ?? preview.clientWidth - 28;
+  svg.style.width = `${width}px`;
+  svg.style.maxWidth = "none";
+}
+
+// Sets an absolute zoom width, keeping the content under (cx, cy) in pane coordinates stationary.
+function zoomPreviewTo(width: number, cx: number, cy: number) {
+  const svg = preview.querySelector("svg");
+  if (!svg) return;
+  const oldWidth = svg.getBoundingClientRect().width;
+  if (oldWidth <= 0) return;
+  svg.style.width = `${width}px`;
+  svg.style.maxWidth = "none";
+  const s = anchoredScroll(preview.scrollLeft, preview.scrollTop, cx, cy, width / oldWidth);
+  preview.scrollLeft = s.left;
+  preview.scrollTop = s.top;
+  userZoomWidth = width;
+}
+
+// Pinch to zoom, PDF-viewer style: two fingers change the SVG's width (native overflow scrolling
+// is the pan), a double tap toggles page-fit and a readable fit-width. Touch-only by nature, so
+// desktop is untouched. touch-action on #preview stops the browser zooming the whole app instead.
+const touchDistance = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+let pinchStart: { distance: number; width: number } | null = null;
+let lastTap = { time: 0, x: 0, y: 0 };
+
+preview.addEventListener(
+  "touchstart",
+  (e) => {
+    if (e.touches.length !== 2) return;
+    const svg = preview.querySelector("svg");
+    if (!svg) return;
+    pinchStart = { distance: touchDistance(e.touches), width: svg.getBoundingClientRect().width };
+  },
+  { passive: true },
+);
+
+preview.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!pinchStart || e.touches.length !== 2) return;
+    // Ours, not the browser's page zoom; passive:false makes this preventDefault effective.
+    e.preventDefault();
+    const fit = pageFitWidth();
+    if (fit === null) return;
+    const target = clampZoomWidth(
+      pinchStart.width * (touchDistance(e.touches) / pinchStart.distance),
+      fit,
+      preview.clientWidth,
+    );
+    const rect = preview.getBoundingClientRect();
+    zoomPreviewTo(
+      target,
+      (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left,
+      (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top,
+    );
+  },
+  { passive: false },
+);
+
+preview.addEventListener("touchend", (e) => {
+  if (e.touches.length < 2) pinchStart = null;
+  if (e.changedTouches.length !== 1 || e.touches.length !== 0) return;
+  const t = e.changedTouches[0];
+  const now = Date.now();
+  const isDoubleTap =
+    now - lastTap.time < 300 && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < 30;
+  // A recognized pair consumes both taps, so a third tap starts a new pair instead of chaining
+  // with the second into an immediate second toggle.
+  lastTap = isDoubleTap ? { time: 0, x: 0, y: 0 } : { time: now, x: t.clientX, y: t.clientY };
+  if (!isDoubleTap) return;
+  const svg = preview.querySelector("svg");
+  const fit = pageFitWidth();
+  if (!svg || fit === null) return;
+  const rect = preview.getBoundingClientRect();
+  // Fit-width is the default, so the toggle runs the other way: anything wider than page-fit
+  // (the default included) taps down to the whole page, and page-fit taps back to the default.
+  if (svg.getBoundingClientRect().width > fit + 1) {
+    zoomPreviewTo(fit, t.clientX - rect.left, t.clientY - rect.top);
+  } else {
+    userZoomWidth = null;
+    fitPreviewToPane();
+  }
+});
+
+function setPreviewMaximized(maximized: boolean) {
+  document.body.classList.toggle("preview-maxed", maximized);
+  previewMaxBtn.setAttribute("aria-pressed", String(maximized));
+  previewMaxBtn.textContent = maximized ? "\u2921" : "\u2922"; // ⤡ collapse, ⤢ expand
+  previewMaxBtn.title = maximized ? "Restore the editor" : "Maximize the preview";
+  // The pane's size changes with the layout; refit once it has settled.
+  userZoomWidth = null;
+  requestAnimationFrame(fitPreviewToPane);
+}
+
+previewMaxBtn.addEventListener("click", () => {
+  setPreviewMaximized(!document.body.classList.contains("preview-maxed"));
+});
+
+let refitTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleRefit() {
+  if (refitTimer) clearTimeout(refitTimer);
+  refitTimer = setTimeout(() => {
+    userZoomWidth = null;
+    fitPreviewToPane();
+  }, 120);
+}
+window.addEventListener("resize", scheduleRefit);
+mobileLayout.addEventListener("change", scheduleRefit);
 
 function setDirty() {
   unsavedBadge.classList.add("visible");
@@ -276,7 +428,7 @@ async function doCompile() {
     }
 
     // sync-xhr: the worker fetches packages (merman, Universe starters) itself. Blocking there is free; on the main thread it would freeze the UI.
-    const pdfBytes = await compileInWorker({
+    const { pdfBytes, vectorBytes } = await compileInWorker({
       source: typstSource,
       fonts: fontsFor(fontThemeId(activeSelection()), needsEmojiFont),
       packageStrategy: "sync-xhr",
@@ -292,6 +444,14 @@ async function doCompile() {
       updateTemplateUi();
     }
 
+    // The preview is rendered by us, not the browser's PDF viewer: an <iframe src=pdf> shows
+    // nothing on Android Chrome and a frozen first page on iOS. The PDF now only feeds the
+    // download link. Rendering the same vector bytes the compiler just produced costs ~15ms.
+    const scrolled = preview.scrollTop;
+    preview.innerHTML = await renderPreviewSvg(vectorBytes);
+    fitPreviewToPane();
+    preview.scrollTop = scrolled;
+
     if (currentPdfUrl) {
       URL.revokeObjectURL(currentPdfUrl);
     }
@@ -299,7 +459,6 @@ async function doCompile() {
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
     currentPdfUrl = URL.createObjectURL(blob);
 
-    preview.src = currentPdfUrl;
     downloadLink.href = currentPdfUrl;
     downloadLink.download = `${pdfFilenameStem()}.pdf`;
     downloadLink.setAttribute("aria-disabled", "false");
@@ -433,6 +592,31 @@ function adoptTemplateFile(name: string, source: string) {
     localStorage.setItem(SELECTION_KEY, templateSelect.value);
   }
   loadTemplateSource(save ? name : `${name} (not saved)`, source);
+}
+
+// Loads the showcase document and the theme that styles it, as one action: the two are a pair.
+function loadShowcase() {
+  morePop.open = false;
+  const showcase = SHOWCASE.markdown;
+  const current = (viewMode === "editor" ? getValue(view) : currentMarkdown).trim();
+  // Ask only when there is something to lose. An untouched default, or the showcase already loaded,
+  // is not worth a prompt; anything else is the user's own document and the autosave goes with it.
+  const disposable = current === DEFAULT_MARKDOWN.trim() || current === showcase || current === "";
+  if (!disposable && !confirm("Replace the current document with the showcase?")) return;
+
+  if (viewMode !== "editor") setViewMode("editor");
+  currentMarkdown = showcase;
+  setValue(view, showcase);
+  localStorage.setItem(AUTOSAVE_KEY, showcase);
+  clearDirty();
+
+  const selection = formatSelection({ kind: "theme", id: SHOWCASE.themeId });
+  templateSelect.value = selection;
+  localStorage.setItem(SELECTION_KEY, selection);
+  updateTemplateUi();
+
+  setStatus("Loaded the showcase");
+  doCompile();
 }
 
 function setViewMode(mode: ViewMode) {
@@ -670,6 +854,8 @@ document.addEventListener("drop", (e) => {
       return;
   }
 });
+
+showcaseBtn.addEventListener("click", loadShowcase);
 
 templateFileInput.addEventListener("change", () => {
   morePop.open = false;

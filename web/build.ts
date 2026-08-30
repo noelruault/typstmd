@@ -25,7 +25,7 @@ const result = await Bun.build({
   target: "browser",
   format: "esm",
   minify: true,
-  external: ["@myriaddreamin/typst-ts-renderer"],
+
   plugins: [themesPlugin(join(ROOT, "src/highlight/themes"))],
 });
 
@@ -49,6 +49,18 @@ await Bun.write(
   join(DIST, "typst_ts_web_compiler_bg.wasm"),
   Bun.file(wasmSrc),
 );
+// The preview renderer's WASM (svg-preview.ts fetches it by relative URL at runtime).
+await Bun.write(
+  join(DIST, "typst_ts_renderer_bg.wasm"),
+  Bun.file(join(ROOT, "node_modules/@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm")),
+);
+
+// The self-hosted baseline fonts (web/fonts/, committed): every compile loads these from our
+// origin instead of a CDN. Licenses ride along; they are part of redistributing the fonts.
+const { readdirSync } = await import("fs");
+for (const f of readdirSync(join(ROOT, "fonts"))) {
+  await Bun.write(join(DIST, "fonts", f), Bun.file(join(ROOT, "fonts", f)));
+}
 
 await Bun.write(join(DIST, ".nojekyll"), "");
 

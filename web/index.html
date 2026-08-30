@@ -72,7 +72,10 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: system-ui, -apple-system, sans-serif;
+      /* dvh tracks the viewport as mobile browser chrome collapses; 100vh alone measures the
+         chrome-less height, so the status bar sits under the address bar on a phone. */
       height: 100vh;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       background: var(--bg-body);
@@ -370,11 +373,29 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
+      position: relative;
     }
+    #preview-max { display: none; }
+    /* The preview is an SVG we render ourselves (see svg-preview.ts), not the browser's PDF
+       viewer, so it scrolls on every platform, phones included. The SVG carries its own page
+       backgrounds; the container supplies the desk behind them. */
     #preview {
       flex: 1;
-      border: none;
+      min-height: 0;
+      overflow: auto;
       background: var(--bg-preview);
+      padding: 14px;
+    }
+    #preview svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 900px;
+      margin: 0 auto;
+      /* The SVG paints no page background of its own, so without this the desk color bleeds
+         through, and in dark mode that is black text on a near-black pane. Documents are paper. */
+      background: #fff;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
     }
 
     /* --- Status bar --- */
@@ -446,13 +467,16 @@
     /* --- Mobile layout --- */
     @media (max-width: 768px) {
       #main { flex-direction: column; }
+      /* Both panes split the leftover viewport. `flex: none` sized the editor to its content,
+         so a long document pushed the preview off the bottom of the screen; `flex: 1 1 0` plus
+         `min-height: 0` keeps each pane a fixed share and lets it scroll internally instead. */
       #editor-pane {
         border-right: none;
         border-bottom: 1.5px solid var(--border-edge);
-        min-height: 40vh;
-        flex: none;
+        flex: 1 1 0;
+        min-height: 0;
       }
-      #preview-container { min-height: 40vh; }
+      #preview-container { flex: 1 1 0; min-height: 0; }
       #toolbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
       #toolbar h1 { font-size: 14px; }
       .toolbar-spacer { display: none; }
@@ -471,6 +495,33 @@
       .tab-actions select.btn { max-width: 104px; }
       /* Triggers sit at different x on mobile (⚙ right, ⋯ left), so pin the panel to the viewport instead of the trigger to stop it running off-screen. */
       .panel { position: fixed; left: 8px; right: 8px; top: auto; min-width: 0; max-width: none; }
+      /* One finger pans (native scrolling); two fingers are the app's own zoom (main.ts), so the
+         browser must not grab the pinch and zoom the whole UI. Also kills iOS double-tap page zoom. */
+      #preview { touch-action: pan-x pan-y; }
+      /* The maximize toggle floats over the preview's top-right corner. */
+      #preview-max {
+        display: grid;
+        place-items: center;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        z-index: 10;
+        font: inherit;
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--text-primary);
+        background: var(--bg-toolbar);
+        border: 1.5px solid var(--border-edge);
+        border-radius: 10px;
+        box-shadow: 0 2.5px 0 var(--border-edge);
+        cursor: pointer;
+      }
+      #preview-max:active { transform: translateY(2px); box-shadow: 0 0.5px 0 var(--border-edge); }
+      /* Maximized: the document gets the editor's half back. Toolbar and status bar stay, so
+         Download PDF and the compile status remain reachable while maximized. */
+      body.preview-maxed #editor-pane { display: none; }
     }
   </style>
 </head>
@@ -502,6 +553,11 @@
     <details class="pop" id="more-pop">
       <summary><span class="btn sec icon" role="button" aria-label="More actions" title="More actions">⋯</span></summary>
       <div class="panel">
+        <!-- First in the menu: a newcomer with nothing to convert needs to see what the tool does before bringing a file to it. -->
+        <button class="pitem" id="load-showcase" type="button" title="Load a full example document together with the template that styles it">
+          Try the showcase
+          <span class="hint">A full report, and the template that styles it</span>
+        </button>
         <label class="pitem" for="template-file" title="Use any .typ file as the template">
           Bring your own .typ template
           <span class="hint">Any Typst file becomes a template</span>
@@ -546,7 +602,10 @@
       <div id="editor-host"></div>
     </div>
     <div id="preview-container">
-      <iframe id="preview"></iframe>
+      <div id="preview" aria-label="Rendered document preview"></div>
+      <!-- Mobile only (see the media query): page-fit leaves spare room, and the editor eats half
+           the screen, so the phone gets a toggle that hands the whole viewport to the document. -->
+      <button id="preview-max" type="button" aria-pressed="false" title="Maximize the preview">&#x2922;</button>
     </div>
   </div>
   <div id="statusbar">

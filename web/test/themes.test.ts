@@ -1,16 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { themes, getTheme, FONT_URLS } from "../src/themes";
+import { themes, getTheme, FONT_URLS, LOCAL_FONT_FAMILIES } from "../src/themes";
 import { starters, getStarter } from "../src/starters";
 import { markdownToTypst } from "../src/pipeline";
 
-// Fonts a theme may name: Typst's embedded set (`typst fonts --ignore-system-fonts`) plus the CDN faces fontsFor loads by URL. Anything else renders a fallback.
-const ALLOWED_FONTS = [
-  "Libertinus Serif",
-  "New Computer Modern",
-  "New Computer Modern Math",
-  "DejaVu Sans Mono",
-  ...Object.keys(FONT_URLS),
-];
+// Fonts a theme may name: the self-hosted baseline (web/fonts/) plus the CDN faces fontsFor
+// loads by URL. Anything else renders a fallback.
+const ALLOWED_FONTS = [...LOCAL_FONT_FAMILIES, ...Object.keys(FONT_URLS)];
 
 describe("theme registry", () => {
   it("has unique ids", () => {

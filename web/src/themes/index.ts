@@ -20,9 +20,38 @@ export const EMOJI_FONT = {
 } as const;
 
 // Non-embedded faces a `.typ` may name, fetched by URL from a CDN (the browser resolves the family by name).
+// The baseline faces, loaded on every compile: unmodified copies committed to web/fonts/ and
+// served beside the app, so no third-party CDN sits in the compile path (the WASM compiler
+// embeds no fonts at all; without these every document renders blank). Relative filenames;
+// fontsFor resolves them against document.baseURI so they work under the /typstmd/ subpath.
+// Semibold ships because the themes set weight: "semibold"; without the face Typst silently
+// substitutes bold.
+export const LOCAL_FONT_FILES: string[] = [
+  "LibertinusSerif-Regular.otf",
+  "LibertinusSerif-Bold.otf",
+  "LibertinusSerif-Italic.otf",
+  "LibertinusSerif-BoldItalic.otf",
+  "LibertinusSerif-Semibold.otf",
+  "LibertinusSerif-SemiboldItalic.otf",
+  "DejaVuSansMono.ttf",
+  "DejaVuSansMono-Bold.ttf",
+  "DejaVuSansMono-Oblique.ttf",
+  "DejaVuSansMono-BoldOblique.ttf",
+];
+export const LOCAL_FONT_FAMILIES = ["Libertinus Serif", "DejaVu Sans Mono"];
+
 // fontsFor scans the template and loads only the entries a theme actually names. Typst names the semi-condensed family "Barlow", not "Barlow Semi Condensed".
+// New Computer Modern stays CDN-loaded: its GUST license text could not be obtained to commit
+// beside the files (see web/fonts/README.md), and only the academic theme names it.
 const EXPO = "https://cdn.jsdelivr.net/npm/@expo-google-fonts";
+const TYPST_ASSETS = "https://cdn.jsdelivr.net/gh/typst/typst-assets@v0.13.1/files/fonts";
 export const FONT_URLS: Record<string, string[]> = {
+  "New Computer Modern": [
+    `${TYPST_ASSETS}/NewCM10-Regular.otf`,
+    `${TYPST_ASSETS}/NewCM10-Bold.otf`,
+    `${TYPST_ASSETS}/NewCM10-Italic.otf`,
+    `${TYPST_ASSETS}/NewCM10-BoldItalic.otf`,
+  ],
   Arimo: [
     `${EXPO}/arimo@0.2.3/Arimo_400Regular.ttf`,
     `${EXPO}/arimo@0.2.3/Arimo_700Bold.ttf`,

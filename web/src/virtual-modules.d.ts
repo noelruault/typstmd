@@ -14,3 +14,9 @@ declare module "*.typ" {
   const content: string;
   export default content;
 }
+
+// The showcase document is imported as text so the app ships one copy of it, not a second that drifts.
+declare module "*.md" {
+  const content: string;
+  export default content;
+}

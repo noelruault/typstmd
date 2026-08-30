@@ -31,17 +31,26 @@ let tmpDir: string;
 
 const NETWORK = process.env.TYPSTMD_NETWORK_TESTS === "1";
 
+// Ten faces, one of them Noto Color Emoji at 10.7 MB. Serially they do not fit bun's 5s
+// default hook budget, which failed the CI deploy at 5000.15ms; concurrently the hook costs
+// the slowest single download rather than the sum, and the explicit timeout leaves headroom
+// for a slow CDN instead of turning one into a red build.
+const FONT_FETCH_TIMEOUT_MS = 120_000;
+
 beforeAll(async () => {
   tmpDir = mkdtempSync(join(tmpdir(), "typstmd-render-"));
   if (!NETWORK) return;
   fontsDir = join(tmpDir, "fonts");
   mkdirSync(fontsDir, { recursive: true });
-  for (const url of [...Object.values(FONT_URLS).flat(), EMOJI_FONT.url]) {
-    const res = await fetch(url);
-    if (!res.ok) continue;
-    writeFileSync(join(fontsDir, url.split("/").pop()!), new Uint8Array(await res.arrayBuffer()));
-  }
-});
+  const dir = fontsDir;
+  await Promise.all(
+    [...Object.values(FONT_URLS).flat(), EMOJI_FONT.url].map(async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) return;
+      writeFileSync(join(dir, url.split("/").pop()!), new Uint8Array(await res.arrayBuffer()));
+    }),
+  );
+}, FONT_FETCH_TIMEOUT_MS);
 
 afterAll(() => {
   rmSync(tmpDir, { recursive: true, force: true });

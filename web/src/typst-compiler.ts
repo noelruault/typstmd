@@ -14,7 +14,10 @@ import { packageCacheRef, WASM_URL } from "./resources";
 
 export interface TypstCompiler {
   init(): Promise<void>;
+  /** PDF bytes, for the download. */
   compile(source: string): Promise<Uint8Array>;
+  /** Vector-IR bytes for the same document, consumed by the preview renderer on the main thread. */
+  compileVector(source: string): Promise<Uint8Array>;
   getErrors(): string[];
   /** Puts binary files in the VFS so `image("/assets/…")` resolves. */
   mapAssets(assets: Iterable<{ path: string; bytes: Uint8Array }>): void;
@@ -74,6 +77,40 @@ export function createCompiler(
   let initialized = false;
   let lastErrors: string[] = [];
 
+  async function compileAs(source: string, format: 0 | 1): Promise<Uint8Array> {
+    if (!initialized) {
+      throw new Error("Compiler not initialized. Call init() first.");
+    }
+    lastErrors = [];
+
+    inner.addSource("/main.typ", source);
+
+    const raw: unknown = await inner.compile({
+      mainFilePath: "/main.typ",
+      format: format as never,
+      diagnostics: "full",
+    });
+
+    // Handle both: direct Uint8Array or wrapped {result, diagnostics}
+    let bytes: Uint8Array | undefined;
+    let diagnostics: unknown;
+
+    if (raw instanceof Uint8Array) {
+      bytes = raw;
+    } else if (raw && typeof raw === "object") {
+      const wrapped = raw as { result?: Uint8Array; diagnostics?: unknown };
+      bytes = wrapped.result;
+      diagnostics = wrapped.diagnostics;
+    }
+
+    if (!bytes || bytes.byteLength === 0) {
+      lastErrors = formatDiagnostics(diagnostics ?? raw);
+      throw new Error(lastErrors.join("\n"));
+    }
+
+    return bytes;
+  }
+
   return {
     async init() {
       if (initialized) return;
@@ -106,39 +143,13 @@ export function createCompiler(
       initialized = true;
     },
 
+    // 1 is CompileFormatEnum.pdf, 0 is vector; 0.7.0 stopped re-exporting the enum, so the values are inlined.
     async compile(source: string) {
-      if (!initialized) {
-        throw new Error("Compiler not initialized. Call init() first.");
-      }
-      lastErrors = [];
+      return compileAs(source, 1);
+    },
 
-      inner.addSource("/main.typ", source);
-
-      // 1 is CompileFormatEnum.pdf; 0.7.0 stopped re-exporting the enum, so the value is inlined.
-      const raw: unknown = await inner.compile({
-        mainFilePath: "/main.typ",
-        format: 1 as never,
-        diagnostics: "full",
-      });
-
-      // Handle both: direct Uint8Array or wrapped {result, diagnostics}
-      let pdfBytes: Uint8Array | undefined;
-      let diagnostics: unknown;
-
-      if (raw instanceof Uint8Array) {
-        pdfBytes = raw;
-      } else if (raw && typeof raw === "object") {
-        const wrapped = raw as { result?: Uint8Array; diagnostics?: unknown };
-        pdfBytes = wrapped.result;
-        diagnostics = wrapped.diagnostics;
-      }
-
-      if (!pdfBytes || pdfBytes.byteLength === 0) {
-        lastErrors = formatDiagnostics(diagnostics ?? raw);
-        throw new Error(lastErrors.join("\n"));
-      }
-
-      return pdfBytes;
+    async compileVector(source: string) {
+      return compileAs(source, 0);
     },
 
     getErrors() {

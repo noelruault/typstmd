@@ -9,9 +9,15 @@ export interface CompileJob {
   assets: { path: string; bytes: Uint8Array }[];
 }
 
+export interface CompileResult {
+  pdfBytes: Uint8Array;
+  vectorBytes: Uint8Array;
+}
+
 interface WorkerReply {
   id: number;
   pdfBytes?: Uint8Array;
+  vectorBytes?: Uint8Array;
   error?: string;
 }
 
@@ -22,7 +28,7 @@ let worker: Worker | null = null;
 let nextId = 1;
 const pending = new Map<
   number,
-  { resolve: (b: Uint8Array) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+  { resolve: (r: CompileResult) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
 >();
 
 function reclaim(message: string): void {
@@ -38,12 +44,12 @@ function reclaim(message: string): void {
 function spawn(): Worker {
   const w = new Worker(new URL("compile-worker.js", document.baseURI), { type: "module" });
   w.onmessage = (event: MessageEvent<WorkerReply>) => {
-    const { id, pdfBytes, error } = event.data;
+    const { id, pdfBytes, vectorBytes, error } = event.data;
     const job = pending.get(id);
     if (!job) return;
     clearTimeout(job.timer);
     pending.delete(id);
-    if (pdfBytes) job.resolve(pdfBytes);
+    if (pdfBytes && vectorBytes) job.resolve({ pdfBytes, vectorBytes });
     else job.reject(new Error(error ?? "compile failed"));
   };
   w.onerror = () => reclaim("The in-browser compiler crashed; the document may be too complex.");
@@ -51,11 +57,11 @@ function spawn(): Worker {
   return w;
 }
 
-export function compileInWorker(job: CompileJob): Promise<Uint8Array> {
+export function compileInWorker(job: CompileJob): Promise<CompileResult> {
   if (!worker) worker = spawn();
   const active = worker;
   const id = nextId++;
-  return new Promise<Uint8Array>((resolve, reject) => {
+  return new Promise<CompileResult>((resolve, reject) => {
     const timer = setTimeout(
       () => reclaim("Compile timed out; the document may be too complex for the in-browser compiler."),
       TIMEOUT_MS,
