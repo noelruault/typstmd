@@ -1,6 +1,6 @@
 import type { FontSpec } from "./typst-compiler";
 import { compileInWorker } from "./compile-client";
-import { renderPreviewSvg } from "./svg-preview";
+import { renderPreviewSvg, separatePages } from "./svg-preview";
 import { fitPage, clampZoomWidth, anchoredScroll } from "./preview-fit";
 import { AGENT_ONBOARDING_PROMPT } from "./agent-onboarding";
 import { markdownToTypst } from "./pipeline";
@@ -170,9 +170,7 @@ const FONT_NAME = /(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g;
 function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
   const theme = getTheme(themeId);
   const named = new Set([...theme.template.matchAll(FONT_NAME)].map((m) => m[1]));
-  // The baseline set is self-hosted (web/fonts/, see LOCAL_FONT_FILES): the compiler embeds no
-  // fonts, and loading these from our own origin means a network that blocks CDNs cannot kill
-  // the compile. assets stays empty so typst.ts fetches nothing from jsdelivr on its own.
+  // The baseline set is self-hosted (web/fonts/, see LOCAL_FONT_FILES): the compiler embeds no fonts, and loading these from our own origin means a network that blocks CDNs cannot kill the compile. assets stays empty so typst.ts fetches nothing from jsdelivr on its own.
   const urls = LOCAL_FONT_FILES.map((f) => new URL(`./fonts/${f}`, document.baseURI).href);
   urls.push(...(theme.fonts.urls ?? []));
   for (const family of named) {
@@ -184,15 +182,10 @@ function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
   };
 }
 
-// Mobile defaults to fit-width: the page fills the pane and the text is readable, which is
-// what a phone reader wants first. Page-fit (the whole page letterboxed in the pane) is one
-// double-tap away, and pinch covers everything in between; both are in the touch handlers
-// below. Desktop keeps the stylesheet's fit-width and is untouched.
+// Mobile defaults to fit-width: the page fills the pane and the text is readable, which is what a phone reader wants first. Page-fit (the whole page letterboxed in the pane) is one double-tap away, and pinch covers everything in between; both are in the touch handlers below. Desktop keeps the stylesheet's fit-width and is untouched.
 const mobileLayout = window.matchMedia("(max-width: 768px)");
 
-// A pinch or double-tap sets this; page-fit applies only while it is null, so a recompile as
-// the user types does not snap their reading zoom back out. Rotation, resize and the maximize
-// toggle reset it: the pane they zoomed against no longer exists.
+// A pinch or double-tap sets this; page-fit applies only while it is null, so a recompile as the user types does not snap their reading zoom back out. Rotation, resize and the maximize toggle reset it: the pane they zoomed against no longer exists.
 let userZoomWidth: number | null = null;
 
 function pageFitWidth(): number | null {
@@ -234,9 +227,7 @@ function zoomPreviewTo(width: number, cx: number, cy: number) {
   userZoomWidth = width;
 }
 
-// Pinch to zoom, PDF-viewer style: two fingers change the SVG's width (native overflow scrolling
-// is the pan), a double tap toggles page-fit and a readable fit-width. Touch-only by nature, so
-// desktop is untouched. touch-action on #preview stops the browser zooming the whole app instead.
+// Pinch to zoom, PDF-viewer style: two fingers change the SVG's width (native overflow scrolling is the pan), a double tap toggles page-fit and a readable fit-width. Touch-only by nature, so desktop is untouched. touch-action on #preview stops the browser zooming the whole app instead.
 const touchDistance = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 let pinchStart: { distance: number; width: number } | null = null;
 let lastTap = { time: 0, x: 0, y: 0 };
@@ -282,8 +273,7 @@ preview.addEventListener("touchend", (e) => {
   const now = Date.now();
   const isDoubleTap =
     now - lastTap.time < 300 && Math.hypot(t.clientX - lastTap.x, t.clientY - lastTap.y) < 30;
-  // A recognized pair consumes both taps, so a third tap starts a new pair instead of chaining
-  // with the second into an immediate second toggle.
+  // A recognized pair consumes both taps, so a third tap starts a new pair instead of chaining with the second into an immediate second toggle.
   lastTap = isDoubleTap ? { time: 0, x: 0, y: 0 } : { time: now, x: t.clientX, y: t.clientY };
   if (!isDoubleTap) return;
   const svg = preview.querySelector("svg");
@@ -444,11 +434,11 @@ async function doCompile() {
       updateTemplateUi();
     }
 
-    // The preview is rendered by us, not the browser's PDF viewer: an <iframe src=pdf> shows
-    // nothing on Android Chrome and a frozen first page on iOS. The PDF now only feeds the
-    // download link. Rendering the same vector bytes the compiler just produced costs ~15ms.
+    // The preview is rendered by us, not the browser's PDF viewer: an <iframe src=pdf> shows nothing on Android Chrome and a frozen first page on iOS. The PDF now only feeds the download link. Rendering the same vector bytes the compiler just produced costs ~15ms.
     const scrolled = preview.scrollTop;
     preview.innerHTML = await renderPreviewSvg(vectorBytes);
+    const rendered = preview.querySelector("svg");
+    if (rendered) separatePages(rendered);
     fitPreviewToPane();
     preview.scrollTop = scrolled;
 
@@ -599,8 +589,7 @@ function loadShowcase() {
   morePop.open = false;
   const showcase = SHOWCASE.markdown;
   const current = (viewMode === "editor" ? getValue(view) : currentMarkdown).trim();
-  // Ask only when there is something to lose. An untouched default, or the showcase already loaded,
-  // is not worth a prompt; anything else is the user's own document and the autosave goes with it.
+  // Ask only when there is something to lose. An untouched default, or the showcase already loaded, is not worth a prompt; anything else is the user's own document and the autosave goes with it.
   const disposable = current === DEFAULT_MARKDOWN.trim() || current === showcase || current === "";
   if (!disposable && !confirm("Replace the current document with the showcase?")) return;
 

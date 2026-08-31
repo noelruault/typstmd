@@ -392,10 +392,13 @@
       height: auto;
       max-width: 900px;
       margin: 0 auto;
-      /* The SVG paints no page background of its own, so without this the desk color bleeds
-         through, and in dark mode that is black text on a near-black pane. Documents are paper. */
-      background: #fff;
-      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
+    }
+    /* Paper, and the shadow that separates it from the desk, per page rather than on the whole
+       document: separatePages() gaps the pages, and a background on the <svg> would fill the gaps
+       back in. Typst paints no page background of its own unless the document sets a page fill. */
+    #preview .typst-page-bg {
+      fill: #fff;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
     }
 
     /* --- Status bar --- */

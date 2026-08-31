@@ -29,7 +29,27 @@ describe("fitPage", () => {
   });
 });
 
-import { clampZoomWidth, anchoredScroll } from "../src/preview-fit";
+import { clampZoomWidth, anchoredScroll, pageOffsets } from "../src/preview-fit";
+
+describe("pageOffsets", () => {
+  it("puts a gap between pages and none after the last one", () => {
+    const { offsets, totalHeight } = pageOffsets([792, 792, 792], 18);
+    expect(offsets).toEqual([0, 810, 1620]);
+    expect(totalHeight).toBe(1620 + 792);
+  });
+
+  it("reproduces the renderer's edge-to-edge stack at gap 0", () => {
+    expect(pageOffsets([842, 842], 0).offsets).toEqual([0, 842]);
+  });
+
+  it("follows each page's own height, so a mixed-size document does not overlap", () => {
+    expect(pageOffsets([792, 1008, 792], 18).offsets).toEqual([0, 810, 1836]);
+  });
+
+  it("is empty, not negative, for a document with no pages", () => {
+    expect(pageOffsets([], 18)).toEqual({ offsets: [], totalHeight: 0 });
+  });
+});
 
 describe("pinch zoom", () => {
   it("never zooms out past page-fit and never past the ceiling", () => {

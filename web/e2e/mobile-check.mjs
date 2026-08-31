@@ -2,8 +2,7 @@
 //
 // bun test cannot see a rendered layout, so the invariants that broke on real phones live here:
 // the pane split, the fit-width default, the maximize toggle, and the double-tap page-fit.
-// Manual, not CI: it needs playwright and a Chromium (`npx playwright install chromium`), and
-// the dev server running (`bun run dev`). Run with: node e2e/mobile-check.mjs
+// Manual, not CI: it needs playwright and a Chromium (`npx playwright install chromium`), and the dev server running (`bun run dev`). Run with: node e2e/mobile-check.mjs
 //
 // Every check prints PASS/FAIL and the script exits non-zero on any FAIL.
 
@@ -16,8 +15,7 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures++;
 };
 
-// TYPSTMD_CHROMIUM overrides the browser binary for environments with a system Chromium
-// instead of a playwright-managed one.
+// TYPSTMD_CHROMIUM overrides the browser binary for environments with a system Chromium instead of a playwright-managed one.
 const browser = await chromium.launch(
   process.env.TYPSTMD_CHROMIUM ? { executablePath: process.env.TYPSTMD_CHROMIUM } : {},
 );
@@ -46,6 +44,19 @@ const layout = await page.evaluate(() => {
 check("preview pane fully on screen", layout.previewOnScreen);
 check("status bar on screen", layout.statusOnScreen);
 check("page itself does not scroll", !layout.pageScrolls);
+
+// Pages have to read as pages: the renderer stacks them edge to edge, which scrolls as one sheet.
+const paging = await page.evaluate(() => {
+  const pages = [...document.querySelectorAll("#preview svg .typst-page")];
+  const box = (el) => el.getBoundingClientRect();
+  return {
+    count: pages.length,
+    gap: pages.length > 1 ? box(pages[1]).top - box(pages[0]).bottom : 0,
+    papered: pages.every((p) => p.firstElementChild?.classList.contains("typst-page-bg")),
+  };
+});
+check("pages are separated by a gap", paging.count > 1 && paging.gap > 1, `${paging.count} pages, gap ${paging.gap.toFixed(1)}px`);
+check("every page carries its own paper", paging.papered);
 
 const svgWidth = () =>
   page.evaluate(() => Math.round(document.querySelector("#preview svg").getBoundingClientRect().width));

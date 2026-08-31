@@ -70,7 +70,7 @@ Four layers, and the last two exist because the first two cannot see a rendered 
 | Emitted string | `mdast-to-typst.test.ts`, `fixtures/`, `template-assembly.test.ts` | wrong Typst |
 | CLI/web parity | `parity.test.ts` | the two front-ends drifting apart. Sanctioned divergences are asserted in that file, not waved away. Needs `pandoc` |
 | Rendered PDF | `render.test.ts` | deleted text, a title at body size, a missing font, a table losing its header. Uses `typst` + `pdftotext`/`pdffonts` and `--ignore-system-fonts` so the font set matches the browser |
-| Mobile layout (manual) | `e2e/mobile-check.mjs` | the pane split, fit-width default, maximize and double-tap invariants, in a real browser at phone size. Needs playwright + Chromium and the dev server; not run in CI |
+| Mobile layout (manual) | `e2e/mobile-check.mjs` | the pane split, fit-width default, maximize and double-tap invariants, and that the preview still cuts into separate pages, in a real browser at phone size. Needs playwright + Chromium and the dev server; not run in CI |
 | Compile time | `bench-compile.ts` | a change doubling what users wait for. `bun run bench` gates locally against `perf-baseline.json`; `bun run bench:update` re-records it. A theme whose `.typ` is gitignored is skipped, because the baseline is committed |
 
 A green `bun test` was never enough on its own: every defect the parity work fixed passed the string layer. CI installs pinned `typst`, `pandoc` and poppler so no layer can silently skip.
@@ -164,7 +164,9 @@ Front matter (`title`, `author`, `date`, `lang`, `toc`) interpolated into the ti
 1. `remark-parse` + `remark-frontmatter` + `remark-gfm` + local plugins (`remark-emoji`, `remark-hard-breaks`, `remark-sub-super`, `remark-highlight`) produce MDAST.
 2. `mdast-to-typst.ts` serializes MDAST → Typst string. Escaping lives in `typst-escape.ts`. Warnings collected in `warnings.ts`.
 3. Typst template (per theme) wraps the body.
-4. `typst-compiler.ts` (WASM, `@myriaddreamin/typst-ts-web-compiler`) runs in a Web Worker and compiles → PDF bytes → Blob URL → `<iframe>`.
+4. `typst-compiler.ts` (WASM, `@myriaddreamin/typst-ts-web-compiler`) runs in a Web Worker and compiles → vector bytes + PDF bytes. `svg-preview.ts` renders the vector bytes to the on-screen SVG; the PDF only feeds the download link.
+
+**The preview is an SVG we render, not the browser's PDF viewer** (`src/svg-preview.ts`): an `<iframe src=blob:…pdf>` shows nothing on Android Chrome and a frozen first page on iOS. The renderer stacks every page edge to edge in one coordinate space, which scrolls as one endless sheet, so `separatePages()` re-translates the page groups by `pageOffsets()` (`preview-fit.ts`, pure math, unit-tested), grows the viewBox to match, and moves the paper white onto a `.typst-page-bg` rect per page — a background on the `<svg>` would fill the gaps back in. Keep the gap and the rect together: dropping either brings the infinite page back.
 
 **Front matter** (`src/frontmatter.ts`): `title`, `author`, `date`, `lang`, `toc` are the five keys typstmd acts on; every other key is passed through untouched as a `frontmatter` dictionary the template can read. `lang` is validated as an ISO 639 code before it is interpolated into a string literal in the generated Typst.
 

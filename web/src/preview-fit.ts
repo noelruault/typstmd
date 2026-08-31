@@ -1,7 +1,4 @@
-// Page-fit zoom for the mobile preview: scale the SVG so one whole page is visible in the pane,
-// the way a PDF viewer's "fit page" works. Fit-to-height alone overflows sideways on a portrait
-// phone (an A4 page is taller than the split pane is wide), so the scale is the smaller of the
-// two fits and the page letterboxes instead of scrolling.
+// Page-fit zoom for the mobile preview: scale the SVG so one whole page is visible in the pane, the way a PDF viewer's "fit page" works. Fit-to-height alone overflows sideways on a portrait phone (an A4 page is taller than the split pane is wide), so the scale is the smaller of the two fits and the page letterboxes instead of scrolling.
 //
 // Kept free of DOM imports so the math is testable under bun, which has no document.
 
@@ -45,4 +42,21 @@ export function anchoredScroll(
     left: (scrollLeft + cx) * scale - cx,
     top: (scrollTop + cy) * scale - cy,
   };
+}
+
+/** Separation between pages, in SVG user units (≈ pt at 1:1). */
+export const PAGE_GAP = 18;
+
+/**
+ * Where each page sits, and how tall the document is, once `gap` separates the pages.
+ * The renderer stacks them edge to edge, which reads as one endless page.
+ */
+export function pageOffsets(heights: number[], gap: number): { offsets: number[]; totalHeight: number } {
+  let y = 0;
+  const offsets = heights.map((height) => {
+    const top = y;
+    y += height + gap;
+    return top;
+  });
+  return { offsets, totalHeight: Math.max(0, y - gap) };
 }
