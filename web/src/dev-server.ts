@@ -58,12 +58,7 @@ async function bundle(): Promise<boolean> {
 if (!(await bundle())) process.exit(1);
 let bundledAt = Date.now();
 
-// Rebundle when a source file is newer than the bundle. The old `bun run dev --watch` never
-// worked: --watch landed in this script's argv rather than bun's, and even as bun's flag it
-// would not have helped, because the server bundles main.ts rather than importing it, so no
-// change to src/ ever restarted the process. Staleness is checked when the bundle itself is
-// requested; a broken edit logs the compile error and serves the last good bundle instead of
-// killing the server mid-session.
+// Rebundle when a source file is newer than the bundle. The old `bun run dev --watch` never worked: --watch landed in this script's argv rather than bun's, and even as bun's flag it would not have helped, because the server bundles main.ts rather than importing it, so no change to src/ ever restarted the process. Staleness is checked when the bundle itself is requested; a broken edit logs the compile error and serves the last good bundle instead of killing the server mid-session.
 function newestMtime(dir: string): number {
   let newest = 0;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -80,18 +75,15 @@ async function ensureFreshBundle(): Promise<void> {
   if (await bundle()) bundledAt = Date.now();
 }
 
-// Rewrite index.html to point to the bundled JS instead of src/main.ts
-function getIndexHtml(): string {
-  const raw = Bun.file(join(ROOT, "index.html")).text();
-  return raw.then((html) =>
-    html.replace(
-      '<script type="module" src="/src/main.ts"></script>',
-      '<script type="module" src="/main.js"></script>',
-    ),
-  ) as unknown as string;
+// Rewrite index.html to point to the bundled JS instead of src/main.ts.
+// Read per request, not once at startup: src/ rebundles on demand, so caching this made a CSS or markup edit the one change that needed a restart to show up.
+async function getIndexHtml(): Promise<string> {
+  const html = await Bun.file(join(ROOT, "index.html")).text();
+  return html.replace(
+    '<script type="module" src="/src/main.ts"></script>',
+    '<script type="module" src="/main.js"></script>',
+  );
 }
-
-const indexHtml = await getIndexHtml();
 
 function respond(body: BodyInit, contentType: string, status = 200): Response {
   return new Response(body, {
@@ -108,7 +100,7 @@ Bun.serve({
 
     // Root → index.html
     if (pathname === "/") {
-      return respond(indexHtml, "text/html");
+      return respond(await getIndexHtml(), "text/html");
     }
 
     // Bundled JS from .dev-dist/, rebundled first if src/ or plugins/ changed since.
@@ -120,8 +112,7 @@ Bun.serve({
       }
     }
 
-    // WASM files from node_modules. Two distinct binaries live behind .wasm paths now, so route
-    // by filename: the renderer first, then the compiler as the fallback for any other .wasm.
+    // WASM files from node_modules. Two distinct binaries live behind .wasm paths now, so route by filename: the renderer first, then the compiler as the fallback for any other .wasm.
     if (pathname.endsWith("typst_ts_renderer_bg.wasm")) {
       const rendererPath = join(
         ROOT,
