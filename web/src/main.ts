@@ -1,6 +1,7 @@
 import type { FontSpec } from "./typst-compiler";
 import { compileInWorker } from "./compile-client";
 import { renderPreviewSvg, separatePages } from "./svg-preview";
+import { detectPreviewMode } from "./preview-mode";
 import { fitPage, clampZoomWidth, anchoredScroll } from "./preview-fit";
 import { AGENT_ONBOARDING_PROMPT } from "./agent-onboarding";
 import { markdownToTypst } from "./pipeline";
@@ -103,6 +104,11 @@ const downloadLink = document.getElementById(
 ) as HTMLAnchorElement;
 const preview = document.getElementById("preview") as HTMLDivElement;
 const previewMaxBtn = document.getElementById("preview-max") as HTMLButtonElement;
+const printBtn = document.getElementById("print-pdf") as HTMLButtonElement;
+
+// Read once: nothing feeding the decision changes without a reload, and the SVG renderer's WASM then stays unfetched on the browsers that never show it.
+const previewMode = detectPreviewMode();
+document.body.classList.toggle("preview-pdf", previewMode === "pdf");
 const hardBreaksToggle = document.getElementById(
   "hard-breaks-toggle",
 ) as HTMLInputElement;
@@ -290,6 +296,18 @@ preview.addEventListener("touchend", (e) => {
   }
 });
 
+// The iframe is reused, but a fresh blob URL per compile still reloads the viewer, so it returns to page one every time: the embedded viewer exposes no way to read the current page back and restore it. `?preview=svg` is the escape to a preview that holds its place.
+let previewFrame: HTMLIFrameElement | null = null;
+function showPdfPreview(url: string) {
+  if (!previewFrame) {
+    previewFrame = document.createElement("iframe");
+    previewFrame.title = "Rendered document preview";
+    preview.replaceChildren(previewFrame);
+  }
+  // Verified in Chromium: without these the viewer opens the thumbnail rail and letterboxes the page to ~52% of a half-width pane. They are PDF open parameters, so a viewer that does not know them ignores the fragment.
+  previewFrame.src = `${url}#navpanes=0&zoom=page-width`;
+}
+
 function setPreviewMaximized(maximized: boolean) {
   document.body.classList.toggle("preview-maxed", maximized);
   previewMaxBtn.setAttribute("aria-pressed", String(maximized));
@@ -302,6 +320,12 @@ function setPreviewMaximized(maximized: boolean) {
 
 previewMaxBtn.addEventListener("click", () => {
   setPreviewMaximized(!document.body.classList.contains("preview-maxed"));
+});
+
+// Print hands over the compiled PDF, never the preview: the browser prints what it has on screen, so printing the page would print a picture of the document instead of the document. Opening the blob puts the real file in the browser's own viewer on every platform, phones included.
+printBtn.addEventListener("click", () => {
+  morePop.open = false;
+  if (currentPdfUrl) window.open(currentPdfUrl, "_blank", "noopener");
 });
 
 let refitTimer: ReturnType<typeof setTimeout> | null = null;
@@ -434,20 +458,24 @@ async function doCompile() {
       updateTemplateUi();
     }
 
-    // The preview is rendered by us, not the browser's PDF viewer: an <iframe src=pdf> shows nothing on Android Chrome and a frozen first page on iOS. The PDF now only feeds the download link. Rendering the same vector bytes the compiler just produced costs ~15ms.
-    const scrolled = preview.scrollTop;
-    preview.innerHTML = await renderPreviewSvg(vectorBytes);
-    const rendered = preview.querySelector("svg");
-    if (rendered) separatePages(rendered);
-    fitPreviewToPane();
-    preview.scrollTop = scrolled;
-
     if (currentPdfUrl) {
       URL.revokeObjectURL(currentPdfUrl);
     }
 
     const blob = new Blob([pdfBytes], { type: "application/pdf" });
     currentPdfUrl = URL.createObjectURL(blob);
+
+    if (previewMode === "pdf") {
+      showPdfPreview(currentPdfUrl);
+    } else {
+      // Rendering the same vector bytes the compiler just produced costs ~15ms, and unlike the PDF viewer it holds the reader's scroll position across a recompile.
+      const scrolled = preview.scrollTop;
+      preview.innerHTML = await renderPreviewSvg(vectorBytes);
+      const rendered = preview.querySelector("svg");
+      if (rendered) separatePages(rendered);
+      fitPreviewToPane();
+      preview.scrollTop = scrolled;
+    }
 
     downloadLink.href = currentPdfUrl;
     downloadLink.download = `${pdfFilenameStem()}.pdf`;

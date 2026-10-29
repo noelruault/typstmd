@@ -376,15 +376,27 @@
       position: relative;
     }
     #preview-max { display: none; }
-    /* The preview is an SVG we render ourselves (see svg-preview.ts), not the browser's PDF
-       viewer, so it scrolls on every platform, phones included. The SVG carries its own page
-       backgrounds; the container supplies the desk behind them. */
+    /* Two previews (see preview-mode.ts): a desktop browser embeds the real PDF, everything else
+       gets the SVG we render ourselves (svg-preview.ts) because no phone shows an embedded PDF.
+       The SVG carries its own page backgrounds; the container supplies the desk behind them. */
     #preview {
       flex: 1;
       min-height: 0;
       overflow: auto;
       background: var(--bg-preview);
       padding: 14px;
+    }
+    /* The embedded viewer draws its own desk, scrollbar and margins, so the pane hands it the
+       whole box. */
+    body.preview-pdf #preview {
+      padding: 0;
+      overflow: hidden;
+    }
+    #preview iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
     }
     #preview svg {
       display: block;
@@ -565,6 +577,11 @@
           Bring your own .typ template
           <span class="hint">Any Typst file becomes a template</span>
         </label>
+        <!-- In the menu rather than the toolbar: on a phone it costs a whole toolbar row, and on desktop the embedded PDF viewer already has its own print button. -->
+        <button class="pitem" id="print-pdf" type="button" title="Open the compiled PDF in the browser's viewer to print it">
+          Print the PDF
+          <span class="hint">Opens the compiled file, not the preview</span>
+        </button>
         <button class="pitem onboard-trigger onboard-mobile" type="button" title="Copy a prompt that onboards your coding agent (Claude, Codex, Cursor, OpenCode)">
           Onboard your agent
           <span class="hint">Copy a prompt for your coding agent</span>
