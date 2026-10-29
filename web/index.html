@@ -477,7 +477,11 @@
     #drop-overlay.visible { opacity: 1; }
 
     :focus-visible { outline: 2.5px solid var(--blue); outline-offset: 2px; }
-    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.3s; }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+      ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+    }
 
     /* --- Mobile layout --- */
     @media (max-width: 768px) {

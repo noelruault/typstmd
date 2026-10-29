@@ -797,8 +797,11 @@ function applyDarkMode(dark: boolean, persist = false) {
   if (view) setHighlightTheme(view, themeId);
 }
 
+// A view transition crossfades one snapshot of the whole page, so the chrome, the editor's highlight swap and the buttons' own 0.1s background fade land together instead of in staggered frames.
 darkToggle.addEventListener("click", () => {
-  applyDarkMode(!isDark(), true);
+  const toggle = () => applyDarkMode(!isDark(), true);
+  if (document.startViewTransition) document.startViewTransition(toggle);
+  else toggle();
 });
 
 highlightSelect.addEventListener("change", () => {
