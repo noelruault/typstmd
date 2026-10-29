@@ -4,6 +4,10 @@
 
 The web app lives at https://noelruault.github.io/typstmd/. Every document it emits is standalone Typst that compiles with the upstream compiler. Templates are built-in themes, pinned Typst Universe starters, or any .typ file dropped onto the page.
 
+## Limits
+
+- Tables: keep under about 7 columns. Typst shrinks every column when a table is wider than the page and the text overlaps; typstmd never shrinks or splits a table. Split a wide table into two keyed on its first column, or fold a short id into the name cell.
+
 ## Documentation
 
 - [README](https://raw.githubusercontent.com/noelruault/typstmd/main/README.md): CLI prerequisites and usage

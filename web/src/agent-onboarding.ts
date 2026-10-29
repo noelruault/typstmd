@@ -21,6 +21,7 @@ Hard rules:
 - Name only fonts you can rely on. The browser build ships Libertinus Serif plus a small set; naming a font the build cannot resolve makes every compile warn. When unsure, do not set a font family.
 - Size inline code relative to context (e.g. 0.78em), never an absolute pt, or code inside a heading renders at body size.
 - Keep it to ONE .typ file.
+- Keep Markdown tables under about 7 columns. Typst sizes columns to content and shrinks them all when the table is wider than the page, so text overlaps; typstmd never shrinks or splits a table. Split a wide table into two keyed on its first column, or fold a short id into the name cell. If I hand you Markdown with a wider table, say so instead of styling around it.
 
 For full context, fetch:
 - https://raw.githubusercontent.com/noelruault/typstmd/main/AGENTS.md  (project, template contract, and the Typst gotchas that each cost a wrong attempt)
