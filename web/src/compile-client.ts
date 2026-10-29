@@ -1,13 +1,8 @@
-// Main-thread side of the compile worker. Owns one worker, times every job out, and terminates plus respawns on timeout or crash, so a pathological document can never freeze the UI or wedge the compiler for the next document.
+// Main-thread side of the compile worker. Owns one worker, times every job out, and terminates plus respawns on timeout or crash, so a pathological document cannot freeze the UI or wedge the compiler for the next document, except after the stack-overflow fallback below moves compiles onto the main thread.
 
-import type { FontSpec, PackageStrategy } from "./typst-compiler";
+import type { CompileJob } from "./typst-compiler";
 
-export interface CompileJob {
-  source: string;
-  fonts: FontSpec;
-  packageStrategy: PackageStrategy;
-  assets: { path: string; bytes: Uint8Array }[];
-}
+export type { CompileJob };
 
 export interface CompileResult {
   pdfBytes: Uint8Array;
@@ -57,7 +52,30 @@ function spawn(): Worker {
   return w;
 }
 
-export function compileInWorker(job: CompileJob): Promise<CompileResult> {
+// WebKit gives a worker a far smaller stack than its main thread, and Typst's layout recursion outgrows it on a long, table-heavy document that Chrome compiles in its worker (measured: a 276 KB, 200-table file overflows in a WebKit worker and compiles on WebKit's main thread).
+// A browser exposes no worker stack size, so the overflow retries on the main thread and stays there for the session: the worker would only overflow again.
+// ponytail: the main-thread compile has no timeout and blocks the UI while it runs; a pathological document there freezes the tab instead of erroring.
+const STACK_OVERFLOW = /maximum call stack size exceeded/i;
+let onMainThread = false;
+
+async function compileOnMainThread(job: CompileJob): Promise<CompileResult> {
+  const { compileJob } = await import("./typst-compiler");
+  return compileJob(job);
+}
+
+export async function compileInWorker(job: CompileJob): Promise<CompileResult> {
+  if (onMainThread) return compileOnMainThread(job);
+  try {
+    return await postToWorker(job);
+  } catch (err) {
+    if (!(err instanceof Error && STACK_OVERFLOW.test(err.message))) throw err;
+    onMainThread = true;
+    reclaim("superseded by a main-thread compile");
+    return compileOnMainThread(job);
+  }
+}
+
+function postToWorker(job: CompileJob): Promise<CompileResult> {
   if (!worker) worker = spawn();
   const active = worker;
   const id = nextId++;

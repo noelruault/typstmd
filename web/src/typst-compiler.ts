@@ -184,3 +184,28 @@ export async function getCompiler(
   await instance.init();
   return instance;
 }
+
+export interface CompileJob {
+  source: string;
+  fonts: FontSpec;
+  packageStrategy: PackageStrategy;
+  assets: { path: string; bytes: Uint8Array }[];
+}
+
+// compileJob throws the compiler's own diagnostics when it has any, so the caller sees the Typst error rather than the generic exception the WASM raised for it.
+export async function compileJob(job: CompileJob): Promise<{ pdfBytes: Uint8Array; vectorBytes: Uint8Array }> {
+  let compiler: TypstCompiler | null = null;
+  try {
+    compiler = await getCompiler(job.fonts, job.packageStrategy);
+    compiler.mapAssets(job.assets);
+    // Vector first: it is the cheap one and the preview's input; the PDF only feeds the download link.
+    // Both come from the same warm compiler, so the second compile is fast.
+    const vectorBytes = await compiler.compileVector(job.source);
+    const pdfBytes = await compiler.compile(job.source);
+    return { pdfBytes, vectorBytes };
+  } catch (err) {
+    const errors = compiler?.getErrors() ?? [];
+    if (errors.length) throw new Error(errors.join("; "));
+    throw err instanceof Error ? err : new Error(String(err));
+  }
+}
