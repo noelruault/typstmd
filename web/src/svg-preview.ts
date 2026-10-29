@@ -5,7 +5,7 @@
 //
 // The renderer needs no fonts: glyph outlines are embedded in the vector artifact by the compiler.
 import { createTypstRenderer } from "@myriaddreamin/typst.ts/dist/esm/renderer.mjs";
-import { PAGE_GAP, pageOffsets } from "./preview-fit";
+import { PAGE_GAP, pageOffsets, scopeRendererStyle } from "./preview-fit";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -36,7 +36,7 @@ export async function renderPreviewSvg(vectorBytes: Uint8Array): Promise<string>
   if (typeof svg !== "string" || svg.length === 0) {
     throw new Error("The preview renderer produced no output.");
   }
-  return svg;
+  return scopeRendererStyle(svg);
 }
 
 // separatePages cuts the document into visible pages: the renderer stacks them edge to edge in one coordinate space, which scrolls as one endless sheet.

@@ -2,6 +2,12 @@
 //
 // Kept free of DOM imports so the math is testable under bun, which has no document.
 
+// scopeRendererStyle narrows the renderer's bare `svg { fill: none; }` to the document it ships with.
+// Its <style> lands in the page once the SVG is inserted, and unscoped it blanks every icon that sets fill on its <svg> element (the onboarding button's Codex and Cursor marks).
+export function scopeRendererStyle(svg: string): string {
+  return svg.replace(/^svg \{/m, "svg.typst-doc, .typst-doc svg {");
+}
+
 export interface PageFit {
   /** CSS pixel width to set on the <svg>; height follows from the aspect ratio. */
   cssWidth: number;
