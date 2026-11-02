@@ -47,7 +47,8 @@ function spawn(): Worker {
     if (pdfBytes && vectorBytes) job.resolve({ pdfBytes, vectorBytes });
     else job.reject(new Error(error ?? "compile failed"));
   };
-  w.onerror = () => reclaim("The in-browser compiler crashed; the document may be too complex.");
+  w.onerror = (event) =>
+    reclaim(`The in-browser compiler crashed; the document may be too complex.${event.message ? ` (${event.message})` : ""}`);
   w.onmessageerror = () => reclaim("The compiler worker sent a malformed message.");
   return w;
 }
