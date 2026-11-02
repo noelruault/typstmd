@@ -119,9 +119,10 @@ describe.if(pandocAvailable())("CLI and web agree", () => {
 
   it("documents the one divergence: a browser cannot read a local image path", () => {
     const markdown = "![alt](./photo.png)";
-    expect(normalise(viaCli(markdown))).toContain('image("./photo.png")');
+    // Open-ended on purpose: pandoc 3.12 appends `alt: "alt"` to the call where the CI-pinned 3.9 does not.
+    expect(normalise(viaCli(markdown))).toContain('image("./photo.png"');
     // Web output only carries an image once the file has been mapped into the VFS.
-    expect(normalise(viaWeb(markdown))).toContain('image("./photo.png")');
+    expect(normalise(viaWeb(markdown))).toContain('image("./photo.png"');
     expect(normalise(viaWeb("![alt](https://x.test/p.png)"))).toBe("");
   });
 });
