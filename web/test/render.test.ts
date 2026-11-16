@@ -7,7 +7,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { markdownToTypst } from "../src/pipeline";
-import { themes, FONT_URLS, EMOJI_FONT } from "../src/themes";
+import { themes, FONT_URLS, EMOJI_FONT, fontUrlsIn } from "../src/themes";
 import { starters } from "../src/starters";
 
 const EMBEDDED = ["Libertinus Serif", "New Computer Modern", "New Computer Modern Math", "DejaVu Sans Mono"];
@@ -44,7 +44,7 @@ beforeAll(async () => {
   mkdirSync(fontsDir, { recursive: true });
   const dir = fontsDir;
   await Promise.all(
-    [...Object.values(FONT_URLS).flat(), EMOJI_FONT.url].map(async (url) => {
+    [...Object.values(FONT_URLS).flat(), ...themes.flatMap((t) => fontUrlsIn(t.template)), EMOJI_FONT.url].map(async (url) => {
       const res = await fetch(url);
       if (!res.ok) return;
       writeFileSync(join(dir, url.split("/").pop()!), new Uint8Array(await res.arrayBuffer()));
@@ -144,7 +144,7 @@ describe.if(canCompile && canInspect)("rendered output", () => {
 
   it("gives a table cell's inline code somewhere to break in a narrow column", () => {
     // A third-party template has no ZWSP show rule of its own, so the break opportunities have to be in the content. Measured on this page at 95pt columns: the widest word is 193pt without the breaks and 139pt with them, so the threshold sits between the two.
-    const md = "| | |\n|---|---|\n| **Document type / version** | Report v1.26 |\n| **Targets** | extranet (`xmldev.dotwconnect.com`) |\n";
+    const md = "| | |\n|---|---|\n| **Document type / version** | Report v1.26 |\n| **Targets** | extranet (`xmldev.connect.example`) |\n";
     const { typstSource } = markdownToTypst(md, {
       templateOverride: '#set page(width: 9cm, height: 12cm, margin: 1cm, columns: 2)\n#set text(font: "Libertinus Serif", size: 10pt)',
     });
@@ -196,7 +196,8 @@ describe.if(canCompile && canInspect)("rendered output", () => {
     const named = namedFonts(theme.template);
     const needsNet = named.some((f) => !EMBEDDED.includes(f));
     it.if(!needsNet || NETWORK)(`${theme.id}: names no font it cannot load`, () => {
-      const { stderr, fonts } = render("# Title\n\nBody with `code`.\n", theme.id);
+      // The frontmatter title draws the cover, where a theme may use a face nothing else does.
+      const { stderr, fonts } = render("---\ntitle: Cover\n---\n\n# Title\n\nBody with `code`.\n", theme.id);
       expect(stderr).not.toContain("unknown font family");
       for (const family of named) {
         expect(fonts).toContain(EMBEDDED_AS[family] ?? family);

@@ -58,8 +58,8 @@ export function pristineSource(selection: Selection, sources: SelectionSources):
 }
 
 /**
- * Which theme's font descriptor applies. Only a theme declares fonts; a Universe package or
- * a brought-in file gets the default set, which is every face the browser build loads.
+ * fontThemeId names the theme whose pipeline options apply; a Universe package or a brought-in file has none and gets the default's.
+ * Fonts are not decided here: they come from the compiled template itself (remoteFontUrls).
  */
 export function fontThemeId(value: string): string {
   const selection = parseSelection(value);

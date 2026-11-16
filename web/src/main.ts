@@ -5,7 +5,7 @@ import { detectPreviewMode } from "./preview-mode";
 import { fitPage, clampZoomWidth, anchoredScroll } from "./preview-fit";
 import { AGENT_ONBOARDING_PROMPT } from "./agent-onboarding";
 import { markdownToTypst } from "./pipeline";
-import { getTheme, themes, EMOJI_FONT, FONT_URLS, LOCAL_FONT_FILES } from "./themes/index";
+import { getTheme, themes, EMOJI_FONT, LOCAL_FONT_FILES, remoteFontUrls } from "./themes/index";
 import { starters, getStarter } from "./starters";
 import {
   formatSelection,
@@ -170,18 +170,10 @@ async function resolveAssets(markdown: string) {
 }
 
 // The "emoji" asset group is unused: its NotoColorEmoji URL 404s at the pinned typst-dev-assets tag.
-// A theme names its faces in the `.typ`; load the CDN URL for each non-embedded one it actually names.
-const FONT_NAME = /(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g;
-
-function fontsFor(themeId: string, withEmoji: boolean): FontSpec {
-  const theme = getTheme(themeId);
-  const named = new Set([...theme.template.matchAll(FONT_NAME)].map((m) => m[1]));
+function fontsFor(template: string, withEmoji: boolean): FontSpec {
   // The baseline set is self-hosted (web/fonts/, see LOCAL_FONT_FILES): the compiler embeds no fonts, and loading these from our own origin means a network that blocks CDNs cannot kill the compile. assets stays empty so typst.ts fetches nothing from jsdelivr on its own.
   const urls = LOCAL_FONT_FILES.map((f) => new URL(`./fonts/${f}`, document.baseURI).href);
-  urls.push(...(theme.fonts.urls ?? []));
-  for (const family of named) {
-    if (FONT_URLS[family]) urls.push(...FONT_URLS[family]);
-  }
+  urls.push(...remoteFontUrls(template));
   return {
     assets: [],
     urls: withEmoji ? [...urls, EMOJI_FONT.url] : urls,
@@ -444,7 +436,7 @@ async function doCompile() {
     // sync-xhr: the worker fetches packages (merman, Universe starters) itself. Blocking there is free; on the main thread it would freeze the UI.
     const { pdfBytes, vectorBytes } = await compileInWorker({
       source: typstSource,
-      fonts: fontsFor(fontThemeId(activeSelection()), needsEmojiFont),
+      fonts: fontsFor(templateOverride, needsEmojiFont),
       packageStrategy: "sync-xhr",
       assets: [...assets.files],
     });

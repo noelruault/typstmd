@@ -11,6 +11,7 @@ import {
   FetchPackageRegistry,
 } from "@myriaddreamin/typst.ts";
 import { packageCacheRef, WASM_URL } from "./resources";
+import { tolerantFontFetch } from "./font-fetch";
 
 export interface TypstCompiler {
   init(): Promise<void>;
@@ -132,7 +133,7 @@ export function createCompiler(
       await inner.init({
         getModule: () => wasmReady,
         beforeBuild: [
-          preloadRemoteFonts(fonts.urls, { assets: fonts.assets }),
+          preloadRemoteFonts(fonts.urls, { assets: fonts.assets, fetcher: tolerantFontFetch as typeof fetch }),
           initOptions.withAccessModel(accessModel),
           initOptions.withPackageRegistry(registry),
         ],
@@ -170,6 +171,10 @@ function instanceSignature(fonts: FontSpec, packageStrategy: PackageStrategy): s
 
 const instances = new Map<string, TypstCompiler>();
 
+// A template names its own fonts, so the number of font sets is no longer bounded by the theme list; each kept compiler holds about 3 MB of WASM memory that never shrinks.
+// Three covers a document flipping emoji on and off plus a template switch; the least recently used goes first.
+const MAX_COMPILERS = 3;
+
 // getCompiler is called on every compile: each cache miss pays a full WASM init plus font parsing.
 export async function getCompiler(
   fonts: FontSpec = DEFAULT_FONTS,
@@ -178,9 +183,12 @@ export async function getCompiler(
   const key = instanceSignature(fonts, packageStrategy);
   let instance = instances.get(key);
   if (!instance) {
+    if (instances.size >= MAX_COMPILERS) instances.delete(instances.keys().next().value!);
     instance = createCompiler(fonts, packageStrategy);
-    instances.set(key, instance);
   }
+  // Re-inserting on every use keeps the map in use order, so the first key is the one to drop.
+  instances.delete(key);
+  instances.set(key, instance);
   await instance.init();
   return instance;
 }
@@ -192,8 +200,18 @@ export interface CompileJob {
   assets: { path: string; bytes: Uint8Array }[];
 }
 
-// compileJob throws the compiler's own diagnostics when it has any, so the caller sees the Typst error rather than the generic exception the WASM raised for it.
-export async function compileJob(job: CompileJob): Promise<{ pdfBytes: Uint8Array; vectorBytes: Uint8Array }> {
+let previousJob: Promise<unknown> = Promise.resolve();
+
+// compileJob runs one job at a time.
+// A template switch posts a second job while the first is still initialising its compiler, and two compilers initialising at once crash the WASM with "memory access out of bounds" (measured: switching between two templates with different font sets, 3 of 3 tries).
+export function compileJob(job: CompileJob): Promise<{ pdfBytes: Uint8Array; vectorBytes: Uint8Array }> {
+  const result = previousJob.then(() => runJob(job));
+  previousJob = result.catch(() => {});
+  return result;
+}
+
+// runJob throws the compiler's own diagnostics when it has any, so the caller sees the Typst error rather than the generic exception the WASM raised for it.
+async function runJob(job: CompileJob): Promise<{ pdfBytes: Uint8Array; vectorBytes: Uint8Array }> {
   let compiler: TypstCompiler | null = null;
   try {
     compiler = await getCompiler(job.fonts, job.packageStrategy);

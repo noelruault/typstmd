@@ -2,7 +2,6 @@
 
 export interface ThemeFonts {
   assets: ("text" | "cjk" | "emoji")[];
-  urls?: string[];
 }
 
 export interface Theme {
@@ -66,6 +65,29 @@ export const FONT_URLS: Record<string, string[]> = {
   ],
   Montserrat: [`${EXPO}/montserrat@0.2.3/Montserrat_800ExtraBold.ttf`],
 };
+
+// fontUrlsIn lets a template bring a face this map does not list: a `// font-url: https://…` line in its `.typ`.
+// It is a comment to Typst, so the file still compiles anywhere that font is installed.
+// The font-file extension is required so a URL still being typed in the Template view is not fetched on every pause.
+export function fontUrlsIn(template: string): string[] {
+  return [...template.matchAll(/^[ \t]*\/\/ font-url: (https:\/\/\S+\.(?:ttf|otf|ttc))[ \t\r]*$/gm)].map((m) => m[1]);
+}
+
+// A font argument is one string or a fallback list: `font: "A"`, `font: ("A", "B")`, `mono-font = "A"`.
+// The lookbehind lets a match start only at the head of a run; without it a long run of word characters and hyphens (an inlined blob) is rescanned from every position, quadratically, on every compile.
+const FONT_ARGUMENT = /(?<![\w-])(?:font:\s*|[\w-]*-font\s*=\s*)(\([^)]*\)|"[^"]*")/g;
+
+// namedFamilies lists each family a template asks for, once, in the order it first names them.
+export function namedFamilies(template: string): string[] {
+  const names = [...template.matchAll(FONT_ARGUMENT)].flatMap((m) => [...m[1].matchAll(/"([^"]+)"/g)].map((name) => name[1]));
+  return [...new Set(names)];
+}
+
+// remoteFontUrls must be given the template that is actually compiled, not the selected theme's.
+// A brought-in file or a Template-view edit names its own faces; scanning the theme it stands in for loads none of them and Typst silently falls back.
+export function remoteFontUrls(template: string): string[] {
+  return [...namedFamilies(template).flatMap((family) => FONT_URLS[family] ?? []), ...fontUrlsIn(template)];
+}
 
 import { allThemes } from "./registry.gen";
 

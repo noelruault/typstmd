@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { themes, getTheme, FONT_URLS, LOCAL_FONT_FAMILIES } from "../src/themes";
+import { themes, getTheme, FONT_URLS, LOCAL_FONT_FAMILIES, fontUrlsIn, namedFamilies, remoteFontUrls } from "../src/themes";
 import { starters, getStarter } from "../src/starters";
 import { markdownToTypst } from "../src/pipeline";
 
@@ -11,6 +11,39 @@ describe("theme registry", () => {
   it("has unique ids", () => {
     const ids = themes.map((t) => t.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("reads a theme's own font-url lines, https only", () => {
+    const template = '  // font-url: https://cdn.example/A.ttf\n// font-url: http://cdn.example/B.ttf\n#let x = "// font-url: https://cdn.example/C.ttf"\n';
+    expect(fontUrlsIn(template)).toEqual(["https://cdn.example/A.ttf"]);
+  });
+
+  it("reads a font-url line with trailing whitespace or a CRLF ending", () => {
+    expect(fontUrlsIn("// font-url: https://cdn.example/A.ttf \r\n// font-url: https://cdn.example/B.otf\r\n")).toEqual([
+      "https://cdn.example/A.ttf",
+      "https://cdn.example/B.otf",
+    ]);
+  });
+
+  it("ignores a font-url that is not yet a font file, as while it is being typed", () => {
+    expect(fontUrlsIn("// font-url: https://cdn.exa\n// font-url: https://cdn.example/A.tt\n")).toEqual([]);
+  });
+
+  it("loads the faces the compiled template names, whatever kind of template it is", () => {
+    const broughtIn = '// font-url: https://cdn.example/A.ttf\n#set text(font: "Montserrat")\n#let mono-font = "DejaVu Sans Mono"\n';
+    expect(remoteFontUrls(broughtIn)).toEqual([...FONT_URLS.Montserrat, "https://cdn.example/A.ttf"]);
+  });
+
+  it("reads every family of a fallback list, once each", () => {
+    const template = '#set text(font: ("Barlow", "Libertinus Serif"))\n#show raw: set text(font:"Barlow")\n#let display-font = "Montserrat"\n';
+    expect(remoteFontUrls(template)).toEqual([...FONT_URLS.Barlow, ...FONT_URLS.Montserrat]);
+  });
+
+  it("scans a long unbroken run in linear time", () => {
+    const started = performance.now();
+    remoteFontUrls("a".repeat(400_000));
+    remoteFontUrls("x-".repeat(200_000));
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("falls back to default for an unknown id", () => {
@@ -29,9 +62,7 @@ describe("theme registry", () => {
 
       it("names only fonts it can load", () => {
         // Embedded or a FONT_URLS CDN face; anything else renders a fallback.
-        const named = [
-          ...theme.template.matchAll(/(?:font: |[\w-]*-font\s*=\s*)"([^"]+)"/g),
-        ].map((m) => m[1]);
+        const named = namedFamilies(theme.template);
         expect(named.length).toBeGreaterThan(0);
         for (const family of named) {
           expect(ALLOWED_FONTS).toContain(family);
