@@ -37,7 +37,7 @@ No linters. CLI has no tests.
 A template is a single Typst `.typ` file that styles the document. The web app loads one via the **Open .typ** button or by dropping the file onto the page. typstmd generates the document **body** from the user's Markdown, then composes it with the template one of three ways, auto-detected in `web/src/pipeline.ts` (`assemble`):
 
 1. **`conf()` convention** — if the file defines `#let conf(title: none, authors: (), date: none, lang: "en", toc: false, doc) = { … doc }`, typstmd calls `#show: doc => conf(doc)` and passes the frontmatter (title/author/date/lang/toc). Use this for a full-document template. It is the Typst Universe / typst.app convention, so a starter's own `template/main.typ` works unmodified.
-2. **Body marker** — put `#typstmd-body` where the body should land; typstmd substitutes it with the serialized body.
+2. **Body marker** — put `#typstmd-body` where the body should land; typstmd substitutes it with the serialized body. Declare `#let typstmd-body = []` above it, or plain Typst fails with "unknown variable".
 3. **Raw preamble** — anything else: typstmd appends the body after the file and passes title/author via `#set document(...)`.
 
 Modes 2 and 3 have no `conf` to receive `lang`, so typstmd emits `#set text(lang: "…")` ahead of the template instead. It precedes the file, so a template setting its own `lang` still wins.
@@ -49,6 +49,30 @@ Rules templates must follow:
 - Keep it to one `.typ` file.
 
 A built-in theme (for repo contributors) is a `.typ` file in `web/src/themes/`; see **Adding a theme** below.
+
+## Typst compatibility (core requirement)
+
+A template that works in typstmd must compile in plain `typst` (0.14+) and typst.app, and a template written for plain Typst must compile in typstmd. Users should never have to think about which one they are writing for. Warnings are acceptable; an error that stops the compile is not.
+
+Every typstmd-specific hook is therefore written so plain Typst either ignores it or falls back:
+
+| Hook | Compatible form | Plain Typst does |
+| --- | --- | --- |
+| A family in `FONT_URLS` (Montserrat, Barlow, Arimo) | `#set text(font: "Montserrat")` | Uses it if installed or given with `--font-path`; otherwise warns "unknown font family" and falls back |
+| An unknown family | Same; a fallback list `("A", "Libertinus Serif")` picks the second face | Warns and falls back |
+| `// font-url: https://….ttf` | A comment line | Ignores it. Typst cannot load a font from a URL or from inside a document at all: fonts come from the system, `--font-path`, files in a typst.app project, or a host program. typstmd's browser host is what reads this line |
+| A font URL that fails to fetch (web) | n/a | `tolerantFontFetch` (`src/font-fetch.ts`) drops that face; the compile falls back instead of failing |
+| Body marker | `#let typstmd-body = []` above `#typstmd-body` | Renders the placeholder |
+| Extra frontmatter keys | `#let conf(…, frontmatter: (:), doc)`; typstmd passes `frontmatter: frontmatter` only when the signature declares it | Uses the default `(:)` |
+| `conf()` convention | `#let conf(title: none, …, doc)` | Defines a function, compiles to nothing until called |
+
+Two forms work in typstmd but not in plain Typst: `#typstmd-body` without the `let`, and reading the global `frontmatter` outside a `conf` parameter. typstmd still compiles them (it emits `#let frontmatter = (:)` for a document without frontmatter, so the template never fails there either), and the pipeline adds a `template` warning naming the compatible form.
+
+**Adding a hook** (anything typstmd reads from a template or injects into the source that is not plain Typst): before it merges,
+
+1. Write its compatible form so the same file compiles in plain `typst`: a comment, a `let` with a default, a parameter with a default, or a fallback the compiler applies by itself.
+2. Add a row to `HOOKS` in `web/test/typst-compat.test.ts`. It compiles the template as-is in upstream `typst`, then through `markdownToTypst` with and without frontmatter, and fails on any `error:`. A form only typstmd accepts goes in `TYPSTMD_ONLY` together with its pipeline warning.
+3. Add the row to the table above.
 
 ## Typst rules that bite (each one cost a wrong attempt)
 
@@ -69,6 +93,7 @@ Four layers, and the last two exist because the first two cannot see a rendered 
 | --- | --- | --- |
 | Emitted string | `mdast-to-typst.test.ts`, `fixtures/`, `template-assembly.test.ts` | wrong Typst |
 | CLI/web parity | `parity.test.ts` | the two front-ends drifting apart. Sanctioned divergences are asserted in that file, not waved away. Needs `pandoc` |
+| Typst compatibility | `typst-compat.test.ts` | a typstmd-specific hook that stops a template compiling in plain `typst`, or a plain Typst template that errors in typstmd. One row per hook; see **Typst compatibility** |
 | Rendered PDF | `render.test.ts` | deleted text, a title at body size, a missing font, a table losing its header. Uses `typst` + `pdftotext`/`pdffonts` and `--ignore-system-fonts` so the font set matches the browser |
 | Mobile layout (manual) | `e2e/mobile-check.mjs` | the pane split, fit-width default, maximize and double-tap invariants, and that the preview still cuts into separate pages, in a real browser at phone size. Needs playwright + Chromium and the dev server; not run in CI |
 | Preview routing (manual) | `e2e/preview-modes.mjs` | a phone handed an embedded PDF it cannot show, or a desktop iframe that loads nothing. Needs a **headed** Chromium: headless reports no PDF viewer, so the iframe path never runs there. `preview-mode.test.ts` covers the decision itself and does run in CI |

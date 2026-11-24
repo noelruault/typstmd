@@ -103,9 +103,9 @@ export function encodeLangSet(meta: Metadata): string {
 }
 
 // Values are passed through, never acted on; interpreting styling keys here would make typstmd a style engine instead of a converter.
-export function encodeFrontmatterDict(meta: Metadata): string {
-  const raw = meta.all;
-  if (!raw || Object.keys(raw).length === 0) return "";
+// encodeFrontmatterDict returns "" for a document without frontmatter unless `always` is set, which a template reading `frontmatter` needs or it fails with "unknown variable".
+export function encodeFrontmatterDict(meta: Metadata, always = false): string {
+  const raw = meta.all ?? {};
 
   const entries = Object.entries(raw)
     .map(([key, value]) => {
@@ -114,7 +114,7 @@ export function encodeFrontmatterDict(meta: Metadata): string {
     })
     .filter((line): line is string => line !== undefined);
 
-  if (entries.length === 0) return "";
+  if (entries.length === 0) return always ? "#let frontmatter = (:)" : "";
   return `#let frontmatter = (\n${entries.join("\n")}\n)`;
 }
 
@@ -151,7 +151,8 @@ function encodeValue(value: unknown): string | undefined {
  * Uses content blocks `[...]` for string values to safely handle
  * special characters.
  */
-export function encodeConfInvocation(meta: Metadata): string {
+// encodeConfInvocation passes the `frontmatter` dictionary only to a `conf` that declares that parameter: Typst rejects an unexpected named argument.
+export function encodeConfInvocation(meta: Metadata, passFrontmatter = false): string {
   const args: string[] = [];
 
   if (meta.title) {
@@ -175,6 +176,10 @@ export function encodeConfInvocation(meta: Metadata): string {
 
   if (meta.toc) {
     args.push(`  toc: true`);
+  }
+
+  if (passFrontmatter) {
+    args.push(`  frontmatter: frontmatter`);
   }
 
   if (args.length === 0) {

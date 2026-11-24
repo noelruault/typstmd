@@ -57,7 +57,9 @@ Getting a good-looking PDF out of Markdown usually means one of three chores: up
 | `lang` | ISO 639 code (`en`, `es`, `fr`) | Typst's `text.lang`: smart quotes, hyphenation patterns, and the table-of-contents heading |
 | `toc` | boolean | Generates a table of contents |
 
-In the web app, any other key is passed through untouched as a `frontmatter` dictionary the template can read; typstmd never interprets it. A template that defines `conf(…)` receives the five as arguments; one that does not (a Universe starter, a brought-in `.typ`) gets `title`/`author` through `#set document(…)` and `lang` through `#set text(lang: …)`.
+In the web app, any other key is passed through untouched as a `frontmatter` dictionary the template can read; typstmd never interprets it. A template that defines `conf(…)` receives the five as arguments; one that does not (a Universe starter, a brought-in `.typ`) gets `title`/`author` through `#set document(…)` and `lang` through `#set text(lang: …)`. To read the other keys and still compile in plain Typst, declare `frontmatter: (:)` as a `conf` parameter.
+
+**Typst compatibility.** A template that works in typstmd compiles in plain `typst` and typst.app, and the other way around. Every typstmd-specific hook is written so plain Typst ignores it or falls back: an unknown font is a warning with a fallback face, never an error. See [Typst compatibility](AGENTS.md#typst-compatibility-core-requirement) for each hook and its compatible form.
 
 **Command line.**
 

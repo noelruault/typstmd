@@ -48,6 +48,45 @@ const BODY_MARKER = "#typstmd-body";
 
 const DEFINES_CONF = /(^|\n)\s*#?let\s+conf\s*\(/;
 
+// The `[^:]` keeps `https://` from reading as a comment.
+function withoutComments(template: string): string {
+  return template.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+const NAMES_FRONTMATTER = /(?<![\w-])frontmatter(?![\w-])/;
+
+// confParameters returns the text between the parentheses of `let conf(…)`, or "" when there is no conf.
+// Parentheses are balanced because a default such as `authors: ()` closes one early.
+function confParameters(template: string): string {
+  const match = DEFINES_CONF.exec(template);
+  if (!match) return "";
+  const start = match.index + match[0].length;
+  let depth = 1;
+  for (let i = start; i < template.length; i++) {
+    if (template[i] === "(") depth++;
+    else if (template[i] === ")" && --depth === 0) return template.slice(start, i);
+  }
+  return "";
+}
+
+function confTakesFrontmatter(template: string): boolean {
+  return /(?:^|[,\s])frontmatter\s*:/.test(withoutComments(confParameters(template)));
+}
+
+// templateCompatWarnings names each typstmd-only hook a template uses in a way plain Typst rejects.
+// typstmd compiles these templates anyway; the warning is so the same file also compiles in `typst` and typst.app.
+function templateCompatWarnings(template: string): [string, string][] {
+  const code = withoutComments(template);
+  const warnings: [string, string][] = [];
+  if (code.includes(BODY_MARKER) && !/let\s+typstmd-body\s*=/.test(code)) {
+    warnings.push(["template", "#typstmd-body is undefined in plain Typst; add `#let typstmd-body = []` above it so the template also compiles there."]);
+  }
+  if (NAMES_FRONTMATTER.test(code) && !confTakesFrontmatter(template)) {
+    warnings.push(["template", "`frontmatter` exists only in typstmd; take it as a `conf(frontmatter: (:), …)` parameter so the template also compiles in plain Typst."]);
+  }
+  return warnings;
+}
+
 // Injecting a `conf` call unconditionally is what stopped any template from typst.app compiling.
 function assemble(
   template: string,
@@ -55,7 +94,7 @@ function assemble(
 ): { preamble: string; bodyWrapper: (body: string) => string } {
   if (DEFINES_CONF.test(template)) {
     return {
-      preamble: `${template}\n\n${encodeConfInvocation(metadata)}`,
+      preamble: `${template}\n\n${encodeConfInvocation(metadata, confTakesFrontmatter(template))}`,
       bodyWrapper: (body) => body,
     };
   }
@@ -116,7 +155,8 @@ export function markdownToTypst(
   const theme = getTheme(options?.themeId ?? "default");
   const templateSource = options?.templateOverride ?? theme.template;
   const needsEmojiFont = EMOJI_PATTERN.test(body);
-  const frontmatterDict = encodeFrontmatterDict(metadata);
+  const frontmatterDict = encodeFrontmatterDict(metadata, NAMES_FRONTMATTER.test(withoutComments(templateSource)));
+  for (const [nodeType, message] of templateCompatWarnings(templateSource)) warnings.warn(nodeType, message);
 
   // Targeted rule rather than a theme-wide fallback list: Typst warns for every family it cannot resolve even when unused, and the emoji font is only loaded for documents using it.
   const emojiRule = needsEmojiFont
