@@ -10,6 +10,7 @@ import { existsSync, readdirSync, statSync } from "fs";
 import { join, extname } from "path";
 import { themesPlugin } from "../plugins/themes";
 import { generateContentThemesRegistry } from "../plugins/content-themes";
+import { COMPILER_WASM_SPECIFIER } from "./compiler-wasm";
 
 const ROOT = join(import.meta.dir, "..");
 const DIST = join(ROOT, ".dev-dist");
@@ -123,10 +124,7 @@ Bun.serve({
       }
     }
     if (pathname.endsWith(".wasm")) {
-      const wasmPath = join(
-        ROOT,
-        "node_modules/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm",
-      );
+      const wasmPath = Bun.resolveSync(COMPILER_WASM_SPECIFIER, ROOT);
       if (existsSync(wasmPath)) {
         return respond(
           await Bun.file(wasmPath).arrayBuffer(),

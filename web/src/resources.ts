@@ -1,3 +1,6 @@
+import compilerPackage from "@myriaddreamin/typst-ts-web-compiler/package.json";
+import { BROTLI_SUFFIX, COMPILER_WASM } from "./compiler-wasm";
+
 // Auto-compile runs on every keystroke, so every fetch here is memoised by URL and spec.
 // An unmemoised prefetch would re-download packages and images while the user types.
 
@@ -99,7 +102,7 @@ export function packageCacheRef(): Map<string, Uint8Array> {
 // Resolved relative so it works under any base path; document.baseURI on the main thread, self.location in a worker.
 // The final fallback keeps module load from throwing under the test runner, where neither global exists; the URL is unused there.
 export const WASM_URL = new URL(
-  "./typst_ts_web_compiler_bg.wasm",
+  `./${COMPILER_WASM}`,
   typeof document !== "undefined"
     ? document.baseURI
     : typeof self !== "undefined" && self.location
@@ -107,14 +110,63 @@ export const WASM_URL = new URL(
       : "http://localhost/",
 ).href;
 
-// prefetchCompilerWasm warms the HTTP cache so the worker's fetch is a cache hit, keeping the worker's compile timeout off the one-time download.
+// The compiler is kept in Cache Storage, not left to the HTTP cache: WebKit does not keep the 28 MB module there and re-downloaded 10.9 MB on every visit (measured in Playwright WebKit with a persistent profile: 20 s per warm load, against 0.3 s in Chromium).
+// The name carries the compiler version because WASM_URL does not: an old module served to the new JS glue would fail to instantiate.
+export const WASM_CACHE_PREFIX = "typstmd-compiler-";
+export const WASM_CACHE = `${WASM_CACHE_PREFIX}${compilerPackage.version}`;
+
+// openWasmCache returns null where Cache Storage is missing (an insecure origin, the test runner) or refused (a private window), and the compiler then comes from the network as before.
+async function openWasmCache(): Promise<Cache | null> {
+  if (typeof caches === "undefined") return null;
+  return caches.open(WASM_CACHE).catch(() => null);
+}
+
+function decodesBrotli(): boolean {
+  try {
+    new DecompressionStream("brotli" as CompressionFormat);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// downloadCompilerWasm takes the brotli copy build.ts writes beside the module (7.1 MB against 10.7 MB gzipped) when the browser can decode it.
+// GitHub Pages serves gzip only and ignores a precompressed `.br`, so the browser decodes it here; Chromium 151 cannot (measured) and keeps the gzip path.
+// A missing `.br` (the dev server, an older deploy) falls back to the module itself.
+async function downloadCompilerWasm(): Promise<Response> {
+  if (decodesBrotli()) {
+    const br = await fetch(WASM_URL + BROTLI_SUFFIX).catch(() => null);
+    if (br?.ok && br.body) {
+      return new Response(br.body.pipeThrough(new DecompressionStream("brotli" as CompressionFormat)), {
+        headers: { "content-type": "application/wasm" },
+      });
+    }
+  }
+  return fetch(WASM_URL);
+}
+
+// fetchCompilerWasm is what the compiler loads its module from, in the worker and in the main-thread fallback alike.
+export async function fetchCompilerWasm(): Promise<Response> {
+  const cache = await openWasmCache();
+  const cached = await cache?.match(WASM_URL).catch(() => undefined);
+  if (cached) return cached;
+  const response = await downloadCompilerWasm();
+  if (cache && response.ok) cache.put(WASM_URL, response.clone()).catch(() => {});
+  return response;
+}
+
+// prefetchCompilerWasm stores the compiler before the first compile so that compile's timeout never races a slow download.
 // onProgress reports MB, not %: content-length is the gzipped size but the drained body is decompressed bytes, so the total is unknown here.
 export async function prefetchCompilerWasm(onProgress?: (mb: number) => void): Promise<void> {
-  const res = await fetch(WASM_URL);
+  const cache = await openWasmCache();
+  if (await cache?.match(WASM_URL).catch(() => undefined)) return;
+
+  const res = await downloadCompilerWasm();
   if (!res.ok || !res.body) {
     await res.arrayBuffer().catch(() => {});
     return;
   }
+  const stored = cache ? cache.put(WASM_URL, res.clone()).catch(() => {}) : Promise.resolve();
   const reader = res.body.getReader();
   let bytes = 0;
   for (;;) {
@@ -123,4 +175,11 @@ export async function prefetchCompilerWasm(onProgress?: (mb: number) => void): P
     bytes += value.byteLength;
     onProgress?.(Math.round(bytes / 1_048_576));
   }
+  await stored;
+  await dropOtherCompilerCaches();
+}
+
+async function dropOtherCompilerCaches(): Promise<void> {
+  const names = await caches.keys().catch(() => [] as string[]);
+  await Promise.all(names.filter((n) => n.startsWith(WASM_CACHE_PREFIX) && n !== WASM_CACHE).map((n) => caches.delete(n)));
 }

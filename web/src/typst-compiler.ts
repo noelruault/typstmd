@@ -10,7 +10,7 @@ import {
   MemoryAccessModel,
   FetchPackageRegistry,
 } from "@myriaddreamin/typst.ts";
-import { packageCacheRef, WASM_URL } from "./resources";
+import { packageCacheRef, fetchCompilerWasm } from "./resources";
 import { tolerantFontFetch } from "./font-fetch";
 
 export interface TypstCompiler {
@@ -117,7 +117,7 @@ export function createCompiler(
       if (initialized) return;
 
       performance.mark("wasm-fetch-start");
-      const wasmReady = fetch(WASM_URL).then((r) => {
+      const wasmReady = fetchCompilerWasm().then((r) => {
         performance.mark("wasm-fetch-end");
         performance.measure("wasm-fetch", "wasm-fetch-start", "wasm-fetch-end");
         return r;

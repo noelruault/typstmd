@@ -5,12 +5,13 @@
  * or any static host. Contents:
  *   - main.js                              bundled app
  *   - index.html                           with script src rewritten to ./main.js
- *   - typst_ts_web_compiler_bg.wasm        copied from node_modules
+ *   - the compiler WASM (COMPILER_WASM)    copied from node_modules, plus a brotli copy
  *   - .nojekyll                            disables Jekyll on GitHub Pages
  *   - llms.txt                             LLM-facing site summary (llmstxt.org)
  */
 
-import { join } from "node:path";
+import { basename, join } from "node:path";
+import { BROTLI_SUFFIX, COMPILER_WASM, COMPILER_WASM_SPECIFIER } from "./src/compiler-wasm";
 import { themesPlugin } from "./plugins/themes";
 import { generateContentThemesRegistry } from "./plugins/content-themes";
 
@@ -41,13 +42,20 @@ const rewritten = indexHtml.replace(
 );
 await Bun.write(join(DIST, "index.html"), rewritten);
 
-const wasmSrc = join(
-  ROOT,
-  "node_modules/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm",
-);
+const wasmSrc = Bun.resolveSync(COMPILER_WASM_SPECIFIER, ROOT);
+if (basename(wasmSrc) !== COMPILER_WASM) {
+  console.error(`The compiler package now ships ${basename(wasmSrc)}; update COMPILER_WASM in src/compiler-wasm.ts.`);
+  process.exit(1);
+}
+await Bun.write(join(DIST, COMPILER_WASM), Bun.file(wasmSrc));
+// A brotli copy for browsers that decode it themselves (resources.ts); GitHub Pages only ever sends gzip.
+const { brotliCompressSync, constants: zlib } = await import("node:zlib");
+const wasmBytes = new Uint8Array(await Bun.file(wasmSrc).arrayBuffer());
 await Bun.write(
-  join(DIST, "typst_ts_web_compiler_bg.wasm"),
-  Bun.file(wasmSrc),
+  join(DIST, COMPILER_WASM + BROTLI_SUFFIX),
+  brotliCompressSync(wasmBytes, {
+    params: { [zlib.BROTLI_PARAM_QUALITY]: 11, [zlib.BROTLI_PARAM_SIZE_HINT]: wasmBytes.byteLength },
+  }),
 );
 // The preview renderer's WASM (svg-preview.ts fetches it by relative URL at runtime).
 await Bun.write(
