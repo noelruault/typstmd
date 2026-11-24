@@ -133,8 +133,8 @@ function decodesBrotli(): boolean {
 // downloadCompilerWasm takes the brotli copy build.ts writes beside the module (7.1 MB against 10.7 MB gzipped) when the browser can decode it.
 // GitHub Pages serves gzip only and ignores a precompressed `.br`, so the browser decodes it here; Chromium 151 cannot (measured) and keeps the gzip path.
 // A missing `.br` (the dev server, an older deploy) falls back to the module itself.
-async function downloadCompilerWasm(): Promise<Response> {
-  if (decodesBrotli()) {
+async function downloadCompilerWasm(brotli: boolean): Promise<Response> {
+  if (brotli && decodesBrotli()) {
     const br = await fetch(WASM_URL + BROTLI_SUFFIX).catch(() => null);
     if (br?.ok && br.body) {
       return new Response(br.body.pipeThrough(new DecompressionStream("brotli" as CompressionFormat)), {
@@ -146,22 +146,34 @@ async function downloadCompilerWasm(): Promise<Response> {
 }
 
 // fetchCompilerWasm is what the compiler loads its module from, in the worker and in the main-thread fallback alike.
+// It reaches the network only when the prefetch stored nothing, and then takes gzip: the compiler consumes this body directly, so a brotli stream failing halfway would fail the compile with no retry.
 export async function fetchCompilerWasm(): Promise<Response> {
   const cache = await openWasmCache();
   const cached = await cache?.match(WASM_URL).catch(() => undefined);
   if (cached) return cached;
-  const response = await downloadCompilerWasm();
+  const response = await downloadCompilerWasm(false);
   if (cache && response.ok) cache.put(WASM_URL, response.clone()).catch(() => {});
   return response;
 }
 
 // prefetchCompilerWasm stores the compiler before the first compile so that compile's timeout never races a slow download.
-// onProgress reports MB, not %: content-length is the gzipped size but the drained body is decompressed bytes, so the total is unknown here.
+// Brotli only when Cache Storage can keep the result: without it the worker downloads again, and that request is gzip, so a brotli prefetch would be a second, wasted download.
+// A brotli download that breaks halfway (a dropped connection, a corrupt `.br`) is retried once as gzip.
 export async function prefetchCompilerWasm(onProgress?: (mb: number) => void): Promise<void> {
   const cache = await openWasmCache();
   if (await cache?.match(WASM_URL).catch(() => undefined)) return;
 
-  const res = await downloadCompilerWasm();
+  try {
+    await drainCompilerWasm(await downloadCompilerWasm(cache !== null), cache, onProgress);
+  } catch {
+    await drainCompilerWasm(await downloadCompilerWasm(false), cache, onProgress);
+  }
+  await dropOtherCompilerCaches();
+}
+
+// drainCompilerWasm reads the body through, storing it when there is a cache; without one, reading it is what warms the HTTP cache for the worker.
+// onProgress reports MB, not %: content-length is the compressed size but the drained body is decompressed bytes, so the total is unknown here.
+async function drainCompilerWasm(res: Response, cache: Cache | null, onProgress?: (mb: number) => void): Promise<void> {
   if (!res.ok || !res.body) {
     await res.arrayBuffer().catch(() => {});
     return;
@@ -176,10 +188,10 @@ export async function prefetchCompilerWasm(onProgress?: (mb: number) => void): P
     onProgress?.(Math.round(bytes / 1_048_576));
   }
   await stored;
-  await dropOtherCompilerCaches();
 }
 
 async function dropOtherCompilerCaches(): Promise<void> {
+  if (typeof caches === "undefined") return;
   const names = await caches.keys().catch(() => [] as string[]);
   await Promise.all(names.filter((n) => n.startsWith(WASM_CACHE_PREFIX) && n !== WASM_CACHE).map((n) => caches.delete(n)));
 }
